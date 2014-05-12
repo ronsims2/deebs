@@ -90,16 +90,29 @@ var jsdb= (function(window, document){
                     else{
                         response = system.response.getResponse("error");
                     }
+                    response.results = [item];
                     return response;
                 },
                 isObject: function(item){
                     var response = this.checktype(item);
-                    if (!response.error && response[0] === "object") {
+                    if (!response.error && response.results[0] === "object") {
                         response = system.response.getResponse("ok");
                     }
                     else{
                         response = system.response.getResponse("error");
                     }
+                    response.results = [item];
+                    return response;
+                },
+                isString: function(item){
+                	var response = this.checktype(item);
+                    if (!response.error && response.results[0] === "string") {
+                        response = system.response.getResponse("ok");
+                    }
+                    else{
+                        response = system.response.getResponse("error");
+                    }
+                    response.results = [item];
                     return response;
                 }
         };
@@ -139,13 +152,13 @@ var jsdb= (function(window, document){
                             }
                             else {
                                 response = system.response.getResponse("error");
-                                response.message = "Table name cannot be used.";
+                                response.message = "Table name already in use.";
                                 counter = i;
                             }
                             break;
                         default:
                             response = system.response.getResponse("error");
-                            response.message = "Table name cannot be used.";
+                            response.message = "Table name already in use.";
                             counter = i;
                             break;
                     }
@@ -163,7 +176,7 @@ var jsdb= (function(window, document){
         /**
          * Checks only to see if table name exist, this is different from checkTablename that checks 
          * to see if tableName is available.
-         * @returns {object} resposne from checking type and implicitly existance.
+         * @returns {object} response from checking type and implicitly existence.
          */
         function checkTableExist(tableName){
             var response = system.data.isArray(tables[tableName]);
@@ -209,7 +222,11 @@ var jsdb= (function(window, document){
         function initRecord(record, recordId, lock){
             var response = system.data.isObject(record);
             if (!response.error) {
+            	if (!lock) {
+            		lock = false;
+            	}
                 record["_" + namespace + "_id"] = recordId;
+                record["_" + namespace + "_lock"] = lock;
                 response.results[record];
             }
             return response;
@@ -224,15 +241,45 @@ var jsdb= (function(window, document){
             if (!response.error) {
                 response = system.data.isObject(record);
                 if (!response.error){
-                    var recordId = getNewRecordId(tableName);
-                    record = initRecord(record, recordId, false);
-                    if (!record.error) {
-                        response = record;
-                        table[tableName].push(record.results[0]);
+                    response = getNewRecordId(tableName);
+                    if (!response.error) {
+                    	var recordId = response.results[0];
+                    	response = initRecord(record, recordId, false);
+                    }
+                    if (!response.error) {
+                        record = response.results[0];
+                        tables[tableName].push(record);
                     }
                 }
             }
             return response;
+        }
+        
+        function getRecord(tableName, recordId){
+        	var response = checkTableExist(tableName);
+        	if (!response.error){
+        		response = system.data.isString(recordId);
+        		if (!response.error) {
+        			recordId = parseFloat(recordId);
+        			if (recordId || recordId === 0) {
+        				var record = tables[tableName][recordId];
+        				if (record) {
+        					response = system.response.getResponse("ok");
+        					response.results = [record];
+        					response.message = "Success, record found."
+        				}
+        				else{
+        					response = system.response.getResponse("error");
+        					response.message = "The record could not be found.";
+        				}
+        			}
+        			else {
+        				response = system.response.getResponse("error");
+        				response.message = "the record ID is improperly formatted.";
+        			}
+        		}
+        	}
+        	return response;
         }
         
         db.getTableNames = function(){
@@ -249,8 +296,12 @@ var jsdb= (function(window, document){
             var response = createTable(tableName);
             return response;
         };
-        db.addRecord = function(tableName, record){
-            var response = addRecord(tableName, record);
+        db.addRecord = function(tableName, record, lock){
+            var response = addRecord(tableName, record, lock);
+            return response;
+        },
+        db.getRecord = function(tableName, recordId){
+        	var response = getRecord(tableName, recordId);
             return response;
         }
         
