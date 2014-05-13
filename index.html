@@ -5,25 +5,43 @@
 <script>
 var tn = "table1";
 jsdb.createTable(tn);
-jsdb.addRecord(tn, {first: "Ron", last: "Sims"});
-jsdb.addRecord(tn, {first: "Don", last: "Tims"});
-jsdb.addRecord(tn, {first: "Lon", last: "Rims"});
+jsdb.addRecord(tn, {first: "Ron", last: "Sims", adress: "10936 Drexel", age: 34, heigh: 6, crunk: function(){alert("what!");}});
+jsdb.addRecord(tn, {first: "Don", last: "zims", adress: "10936 Drexel", age: 34, heigh: 6});
+jsdb.addRecord(tn, {first: "Lon", last: "Sims", adress: "10936 Drexel", age: 34, heigh: 6});
 jsdb.addRecord(tn, {first: "Jon", last: "Dims"});
 jsdb.addRecord(tn, {first: "Son", last: "Zims"});
+
+var moreRecords = [
+                   {first: "zon", last: "Sims", adress: "10936 Drexel", age: 34, heigh: 6,crunk: function(){alert("what!");}},
+                   {first: "Lon", last: "Sims", adress: "10936 Drexel", age: 34, heigh: 4,crunk: function(){alert("what!");}},
+                   {first: "won", last: "Sims", adress: "10936 Drexel", age: 34, heigh: 5},
+                   {first: "Tron", last: "Sims", adress: "10936 Drexel", age: 31, heigh: 6, crunk: function(){alert("what!");}},
+                   {first: "Gwon", last: "dims", adress: "10936 Drexel", age: 32, heigh: 6}
+                   ];
+/*for(var i = 0; i < moreRecords.length; i++){
+    jsdb.addRecord(tn, moreRecords[i]);
+}*/
+                   
+jsdb.addRecords(tn, moreRecords);
 
 var response = jsdb.getRecords(tn, "*");
 console.log("All Records", response);
 
 var criteria = {
         first:"Lon",
-        last:"ims"
+        last:"Sims"
 };
 response = jsdb.selectRecords(tn, criteria);
 console.log("Selected Records", response);
-
+/*
 var sys = jsdb.getSystem();
-var stringCheck = sys.data.areStringsSimilar("Doggie", "Dog");
+var stringCheck = sys.data.areLikeStrings("Doggie", "Dog");
 console.log("Similar check", stringCheck);
+*/
+var record = {first: "Ron", last: "Sims", adress: "10936 Drexel", age: 34, heigh: 6};
+var likeCheck = jsdb.getLikeRecords(tn, record);
+console.log("like records", likeCheck);
+
 </script>
 </head>
 <body>

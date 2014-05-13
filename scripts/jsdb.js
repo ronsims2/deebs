@@ -5,6 +5,10 @@ var options = {
 };
 
 var jsdb= (function(options){
+    
+    if (!options) {
+        options = {};
+    }
     var jsdb;
     var namespace = options.namespace || "jsdb";
     var user = options.user || "admin";
@@ -20,7 +24,8 @@ var jsdb= (function(options){
         var system = {};
         system.response = {
                 getResponse: function(type){
-                    var response = db;
+                    var response = {};
+                    
                     switch(type){
                     case "warn":
                         response.error = true;
@@ -41,11 +46,17 @@ var jsdb= (function(options){
         
         system.debug = {
                 print: function(item, label){
-                    if(options.debug){
+                    if (options.debug && console) {
                         if (!label) {
                             label = "system debug: ";
                         }
                         console.log(label, item);
+                    }
+                },
+                alert: function(item){
+                    if (options.debug && alert) {
+                        item = JSON.stringify(item);
+                        alert(item);
                     }
                 }
         };
@@ -97,9 +108,11 @@ var jsdb= (function(options){
                     var response = this.checktype(item);
                     if (!response.error && response.results[0] === "array") {
                         response = system.response.getResponse("ok");
+                        response.message = "";
                     }
                     else{
                         response = system.response.getResponse("error");
+                        response.message = "";
                     }
                     response.results = [item];
                     return response;
@@ -108,9 +121,11 @@ var jsdb= (function(options){
                     var response = this.checktype(item);
                     if (!response.error && response.results[0] === "object") {
                         response = system.response.getResponse("ok");
+                        response.message = "";
                     }
                     else{
                         response = system.response.getResponse("error");
+                        response.message = "";
                     }
                     response.results = [item];
                     return response;
@@ -119,9 +134,11 @@ var jsdb= (function(options){
                 	var response = this.checktype(item);
                     if (!response.error && response.results[0] === "string") {
                         response = system.response.getResponse("ok");
+                        response.message = "";
                     }
                     else{
                         response = system.response.getResponse("error");
+                        response.message = "";
                     }
                     response.results = [item];
                     return response;
@@ -130,14 +147,61 @@ var jsdb= (function(options){
                     var response = this.checktype(item);
                     if (!response.error && response.results[0] === "number") {
                         response = system.response.getResponse("ok");
+                        response.message = "";
                     }
                     else{
                         response = system.response.getResponse("error");
+                        response.message = "";
                     }
                     response.results = [item];
                     return response;
                 },
-                areSimilarStrings: function(item1, item2){
+                isFunction: function(item){
+                    var response = this.checktype(item);
+                    if (!response.error && response.results[0] === "function") {
+                        response = system.response.getResponse("ok");
+                        response.message = "";
+                    }
+                    else{
+                        response = system.response.getResponse("error");
+                        response.message = "";
+                    }
+                    response.results = [item];
+                    return response;
+                },
+                areLikeNumbers: function(item1, item2){
+                    var response = this.isNumber(item1);
+                    if (!response.error) {
+                        response = this.isNumber(item2);
+                        if (!response.error) {
+                            var score = 0;
+                            if (item1 > item2) {
+                                var item1Less = item1 - (item1 * 0.1);
+                                if (item2 >= item1Less) {
+                                    score += 100;
+                                }
+                            }
+                            else{
+                                var item2Less = item2 - (item2 + 0.1);
+                                if (item1 >= item2Less) {
+                                    score += 100;
+                                }
+                            }
+                            if (score) {
+                                response = system.response.getResponse("ok");
+                                response.message = "The numbers are similar";
+                                response.results = arguments;
+                            }
+                            else {
+                                response = system.response.getResponse("error");
+                                response.message = "The numbers are not similar";
+                                response.results = arguments;
+                            }
+                        }
+                    }
+                    return response;
+                },
+                areLikeStrings: function(item1, item2){
                     var response = this.isString(item1);
                     if (!response.error) {
                         response = this.isString(item2);
@@ -197,40 +261,81 @@ var jsdb= (function(options){
                         if (score > 74) {
                             response = system.response.getResponse("ok");
                             response.message = "Items are similar.";
-                            response.results[item1,item2];
+                            response.results = arguments;
                         }
                         else{
                             response = system.response.getResponse("error");
                             response.message = "Items are not similar.";
-                            response.results[item1,item2];
+                            response.results = arguments;
                         }
                     }
                     return response;
                 },
-                areSimilarArrays: function(item1, item2){
+                areLikeObjects: function(item1, item2){
+                    var response = system.data.isObject(item1);
+                    if (!response.error) {
+                        response = system.data.isObject(item2);
+                        if (!response.error) {
+                            var paramCount = 0;
+                            var score = 0;
+                            for(var param in item1){
+                                paramCount++;
+                                if (item1[param] === item2[param]) {
+                                    score += 10;
+                                }
+                            }
+                            for(var param in item2){
+                                paramCount++;
+                                if (item2[param] === item1[param]) {
+                                    score += 10;
+                                }
+                            }
+                            score += Math.floor((score / (paramCount * 10)) *100);
+                            if (score > 74) {
+                                response = system.response.getResponse("ok");
+                                response.message = "Objects are similar.";
+                                response.results = arguments;
+                            }
+                            else{
+                                response = system.response.getResponse("error");
+                                response.message = "Objects are not similar.";
+                                response.results = arguments;
+                            }
+                        }
+                    }
+                    return response;
+                },
+                areLikeArrays: function(item1, item2){
                     var response = system.data.isArray(item1);
                     if (!response.error) {
-                    	reaponse = system.data.isArray(item2);
-                    	if (!response.error) {
-                    		var score = 0;
-                    		var longestArray;
-                    		var shortestArray;
-                    		
-                    		if (item1.length > item2.length && item1.length !== item2.length) {
-                    			longestArray = item1;
-                    			shortestArray = item2;
-                    		}
-                    		else {
-                    			longestArray = item2;
-                    			shortestArray = item1;
-                    		}
-                    		if (item1.length === item2.length) {
-                    			score += 10;
-                    		}
-                    		else {
-                    			score += Math.floor((shortestArray.length / longestArray.length) * 10);
-                    		}
-                    	}
+                        response = system.data.isArray(item2);
+                        if (!response.error) {
+                            var itemCount = 0;
+                            var score = 0;
+                            for(var i = 0; i < item1.length; i++){
+                                itemCount++;
+                                if (item1[i] === item2[i]) {
+                                    score += 10;
+                                }
+                            }
+                            for(var j = 0; j < item1.length; j++){
+                                itemCount++;
+                                if (item2[j] === item1[j]) {
+                                    score += 10;
+                                }
+                            }
+                            score += Math.floor((score / (itemCount * 10)) *100);
+                            if (score > 74) {
+                                response = system.response.getResponse("ok");
+                                response.message = "Arrays are similar.";
+                                response.results = arguments;
+                            }
+                            else{
+                                response = system.response.getResponse("error");
+                                response.message = "Arrays are not similar.";
+                                response.results = arguments;
+                            }
+                        }
                     }
                     return response;
                 }
@@ -310,6 +415,22 @@ var jsdb= (function(options){
             return response;
         }
         
+        /**
+         * @returns  an object with basic table info
+         */
+        function getTableInfo(tableName){
+            var response = checkTableExist(tableName);
+            if (!response.error) {
+                var table = tables;
+                var tableInfo = {};
+                tableInfo.rowCount = table[tableName].length;
+                response = system.response.getResponse("ok");
+                response.message = "Success, table info returned.";
+                response.results = [tableInfo];
+            }
+            return response;
+        }
+        
         function getNewRecordId(tableName){
             var response = getTable(tableName);
             if (!response.error){
@@ -337,16 +458,21 @@ var jsdb= (function(options){
             }
             return response;
         }
-        
+        /**
+         * Cannot loop through initRecord and call getResponse or any methods that  call it! 
+         * If so it will return the iterated member.
+         */
         function initRecord(record, recordId, lock){
             var response = system.data.isObject(record);
             if (!response.error) {
             	if (!lock) {
             		lock = false;
             	}
+            	
                 record["_" + namespace + "_id"] = recordId;
                 record["_" + namespace + "_lock"] = lock;
-                response.results[record];
+
+                response.results = [record]; 
             }
             return response;
         }
@@ -367,8 +493,33 @@ var jsdb= (function(options){
                     }
                     if (!response.error) {
                         record = response.results[0];
+                        
                         tables[tableName].push(record);
-                        response.message = "success record added to " + tableName + ".";
+                        response.message = "Success, record added to " + tableName + ".";
+                    }
+                }
+            }
+            return response;
+        }
+        
+        function addRecords(tableName, records){
+            system.debug.print(records, "records");
+            var response = checkTableExist(tableName);
+            if (!response.error) {
+                response = system.data.isArray(records);
+                if (!response.error) {
+                    var counter = records.length;
+                    if (counter > 0) {
+                        if (!response.error) {
+                            for(var i = 0; i < counter; i++){
+                                response = addRecord(tableName, records[i]);
+                            }
+                        }
+                    }
+                    else {
+                        response = system.response.getResponse("error");
+                        response.message = "No records supplied.";
+                        response.results = [];
                     }
                 }
             }
@@ -473,6 +624,36 @@ var jsdb= (function(options){
             return response;
         }
         
+        function getCollection(tableName, collection){
+            var response = checkTableExist(tableName);
+            if (!response.error) {
+                response = system.data.isArray(collection);
+                    var counter = collection.length;
+                    var records = [];
+                    if (counter > 0){
+                        for(var i = 0; i < counter; i++){
+                           var index = parseFloat(collection[i]);
+                           if (index || index === 0) {
+                               var response = getRecord(tableName, collection[i]);
+                               if (!response.error) {
+                                   records.push(response.results[0]);
+                               }
+                           }
+                        }
+                        if (records.length > 0){
+                            response = system.response.getResponse("ok");
+                            response.message = "Success, records found.";
+                            response.results = records;
+                        }
+                    }
+                    else {
+                        response = system.response.getResponse("error");
+                        response.message = "No collection supplied.";
+                    }
+                }
+            return response;
+        }
+        
         function selectRecords(tableName, criteria){
             var response = checkTableExist(tableName);
             var records = [];
@@ -518,38 +699,81 @@ var jsdb= (function(options){
             return response;
         }
         
-        function searchRecords(tableName, criteria){
+        function getLikeRecords(tableName, record){
             var response = checkTableExist(tableName);
-            var records = [];
             if (!response.error) {
-                response = system.data.isObject(criteria);
+                response = system.data.isObject(record);
                 if (!response.error) {
-                    var counter = tables[tableName].length;
-                    if (counter > 0){
-                        for(var i = 0; i < counter; i++){
-                            var record = tables[tableName][i];
-                            if (record) {
-                                var matches = 0;
-                                var properties = 0;
-                                for(var param in criteria) {
-                                    properties++;
-                                    var recordParam = record[param];
-                                    if (recordParam) {
-                                        /**
-                                         * @todo compare here
-                                         */
-                                    }
+                    response = getRecords(tableName, "*");
+                    if (!response.error){
+                        var records = response.results;
+                        var matches = [];
+                        if (records.length > 0) {
+                            for(var i = 0; i < records.length; i++){
+                                response = system.data.areLikeObjects(record, records[i]);
+                                if (!response.error) {
+                                    matches.push(records[i]);
                                 }
                             }
                         }
-                    }
-                    else {
-                        response = system.response.getResponse("error");
-                        response.message = "The table is empty.";
+                        else{
+                            response = system.response.getResponse("ok");
+                            response.message = "No like records found.";
+                        }
+                        if (matches.length > 0){
+                            response = system.response.getResponse("ok");
+                            response.message = matches.length + " like records found.";
+                            response.results = matches;
+                        }
                     }
                 }
             }
             return response;
+        }
+        /**
+         * saves the db to localStorage for later between page refreshes and different sessions.
+         */
+        function pickle(){
+            var response = getTableNames();
+            if (!response.error) {
+                var tableNames = response.results;
+                for (var i = 0; i < tableNames.length; i++){
+                    response = getTable(tableNames[i]);
+                    if(!response.error) {
+                        var table = JSON.stringify(response.results);
+                        var tableName = namespace + "_" + tableNames[i];
+                        localStorage.setItem(tableName, table);
+                    }
+                }
+                response = system.response.getResponse("ok");
+                response.message = "Success, database pickled.";
+                response.results = [];
+            }
+            return response;
+        }
+        
+        function unPickle(){
+            var tableNames = namespace + "_" +"tableNames";
+            tableNames = JSON.parse(localStorage.getItem(tableNames));
+            
+            var response = system.data.isArray(tableNames);
+            
+            if (!response.error) {
+                for(var i = 0; i < tableNames.length; i++) {
+                    var tableName = namespace + "_" + tableNames[i].name;
+                    var table = localStorage.getItem(tableName);
+                    if (table) {
+                        tableName = tableName.replace((namespace + "_"), "");
+                        alert(tableName);
+                        tables[tableName] = JSON.parse(table);
+                    }
+                }
+                response = system.response.getResponse("ok");
+                response.message = "Success, database unpickled.";
+                response.results = [tables];
+            }
+        
+           return response; 
         }
         
         /**
@@ -596,14 +820,50 @@ var jsdb= (function(options){
             return response;
         };
         
+        db.getLikeRecords = function(tableName, record){
+            var response = getLikeRecords(tableName, record);
+            return response;
+        };
+        
+        db.pickle = function(){
+            var response = pickle();
+            return response;
+        };
+        
+        db.unPickle = function(){
+            var response = unPickle();
+            return response;
+        };
+        
+        db.getTableInfo = function(tableName){
+            var response = getTableInfo(tableName);
+            return response;
+        };
+        
+        db.addRecords = function(tableName, records){
+            var response = addRecords(tableName, records);
+            return response;
+        };
+        
+        db.getCollection = function(tableName, collection){
+            var response = getCollection(tableName, collection);
+            return response;
+        }
+        
         if (options.superUser) {
             db.getSystem = function(){
                 return system;
             };
         }
         
+        if (options.superUser) {
+            db.getTables = function(){
+                return tables;
+            };
+        }
+        
         return db;
-    }
+    };
     
     if (!jsdb) {
          jsdb = createDB();
