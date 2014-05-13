@@ -137,7 +137,7 @@ var jsdb= (function(options){
                     response.results = [item];
                     return response;
                 },
-                areStringsSimilar: function(item1, item2){
+                areSimilarStrings: function(item1, item2){
                     var response = this.isString(item1);
                     if (!response.error) {
                         response = this.isString(item2);
@@ -159,66 +159,42 @@ var jsdb= (function(options){
                             }
                           //test content similarity
                             var contentScore = 0;
-                            var contentScoreMax = 0;
                             var stringCounter = (shortestString.length < 100) ? shortestString.length : 100;
+                            var contentScoreMax = 10 * stringCounter;
                             for (var j = 0; j < stringCounter; j++){
-                                contentScoreMax += 20;
                                 if (shortestString[j].toLowerCase() === longestString[j].toLowerCase()){
-                                    contentScore += 20;
-                                }
-                                if (j && stringCounter > 1) {
-                                    var previousCharacter = j -1;
-                                    contentScoreMax += 1;
-                                    if (shortestString[j].toLowerCase() === longestString[previousCharacter].toLowerCase()){
-                                        contentScore += 1;
-                                    }
-                                }
-                                var nextCharacter = j + 1;
-                                contentScoreMax += 1;
-                                if (nextCharacter  < stringCounter) {
-                                    if (shortestString[j].toLowerCase() === longestString[nextCharacter].toLowerCase()){
-                                        contentScore += 1;
-                                    }
+                                    contentScore += 10;
                                 }
                             }
-system.debug.print(contentScore);
-                            contentScore = Math.floor((contentScore / contentScoreMax) * 50);
+                            contentScore = Math.floor((contentScore / contentScoreMax) * 70);
                             score += contentScore;
-system.debug.print(contentScoreMax);
                             contentScore = 0;
-                            contentScoreMax = 0;
+                            contentScoreMax = 100;
                             if(shortestString >= 6) {
                                 var sliceSize = Math.floor(shortestString.length / 3);
                                 var shortestStringSlice = (shortestString.slice(0, sliceSize)).toLowerCase();
                                 var longestStringSlice = (longestString.slice(0, sliceSize)).toLowerCase();
                                 
-                                contentScoreMax += 33;
                                 if (shortestStringSlice === longestStringSlice) {
-                                    contentScore += 33;
+                                    contentScore += 34;
                                 }
-system.debug.print(contentScore);
                                 shortestStringSlice = (shortestString.slice(0, sliceSize * 2)).toLowerCase();
                                 longestStringSlice = (longestString.slice(0, sliceSize * 2)).toLowerCase();
                                 
-                                contentScoreMax += 33;
                                 if (shortestStringSlice === longestStringSlice) {
                                     contentScore += 33;
                                 }
-system.debug.print(contentScore);
                                 shortestStringSlice = (shortestString.slice(0, sliceSize * 3)).toLowerCase();
                                 longestStringSlice = (longestString.slice(0, sliceSize * 3)).toLowerCase();
                                 
-                                contentScoreMax += 33;
                                 if (shortestStringSlice === longestStringSlice) {
                                     contentScore += 33;
                                 }
-                                contentScore = Math.floor((contentScore / contentScoreMax) * 50);
-system.debug.print(contentScore);
+                                contentScore = Math.floor((contentScore / contentScoreMax) * 20);
                                 score += contentScore;
                             }
                         }
-system.debug.print(score);
-                        if (score > 60) {
+                        if (score > 74) {
                             response = system.response.getResponse("ok");
                             response.message = "Items are similar.";
                             response.results[item1,item2];
@@ -231,33 +207,32 @@ system.debug.print(score);
                     }
                     return response;
                 },
-                isSimilar: function(item1, item2){
-                    var score = 0;
-                    var response1 = this.isArray(item1);
-                    var response2 = this.isArray(item2);
-                    if (!response1.error && !response2.error) {
-                        score += 10;
-                        if(item1.length === item2.length){
-                            score += 10;
-                            var counter = item1.length;
-                            var arrayScore = 0;
-                            for(var i = 0; i < counter; i++){
-                                var stringCheck1 = this.isString(item1[i]);
-                                var stringCheck2 = this.isString(item2[i]);
-                                var numberCheck1 = this.isNumber(item1[i]);
-                                var numberCheck2 = this.isNumber(item2[i]);
-                                var arrayCheck1 = this.isArray(item1[i]);
-                                var arrayCheck2 = this.isArray(item2[i]);
-                                var objectCheck1 = this.isObject(item1[i]);
-                                var objectCheck2 = this.isObject(item2[i]);
-                                
-                                if (!stringCheck1.error && !stringCheck2.error) {
-                                    arrayScore += 10;
-                                    var stringsCheck = areStringsSimilar(item1[i], item2[i]);
-                                }
-                            }
-                        }
+                areSimilarArrays: function(item1, item2){
+                    var response = system.data.isArray(item1);
+                    if (!response.error) {
+                    	reaponse = system.data.isArray(item2);
+                    	if (!response.error) {
+                    		var score = 0;
+                    		var longestArray;
+                    		var shortestArray;
+                    		
+                    		if (item1.length > item2.length && item1.length !== item2.length) {
+                    			longestArray = item1;
+                    			shortestArray = item2;
+                    		}
+                    		else {
+                    			longestArray = item2;
+                    			shortestArray = item1;
+                    		}
+                    		if (item1.length === item2.length) {
+                    			score += 10;
+                    		}
+                    		else {
+                    			score += Math.floor((shortestArray.length / longestArray.length) * 10);
+                    		}
+                    	}
                     }
+                    return response;
                 }
         };
         
