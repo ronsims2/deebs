@@ -2,6 +2,29 @@
 <html>
 <head>
 <script src="scripts/jsdb.js"></script>
+<script>
+var tn = "table1";
+jsdb.createTable(tn);
+jsdb.addRecord(tn, {first: "Ron", last: "Sims"});
+jsdb.addRecord(tn, {first: "Don", last: "Tims"});
+jsdb.addRecord(tn, {first: "Lon", last: "Rims"});
+jsdb.addRecord(tn, {first: "Jon", last: "Dims"});
+jsdb.addRecord(tn, {first: "Son", last: "Zims"});
+
+var response = jsdb.getRecords(tn, "*");
+console.log("All Records", response);
+
+var criteria = {
+        first:"Lon",
+        last:"ims"
+};
+response = jsdb.selectRecords(tn, criteria);
+console.log("Selected Records", response);
+
+var sys = jsdb.getSystem();
+var stringCheck = sys.data.areStringsSimilar("Ronald", "Ronald");
+console.log("Similar check", stringCheck);
+</script>
 </head>
 <body>
 </body>

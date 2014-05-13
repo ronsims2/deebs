@@ -4,7 +4,7 @@ var options = {
         debug: true
 };
 
-var jsdb= (function(window, document){
+var jsdb= (function(options){
     var jsdb;
     var namespace = options.namespace || "jsdb";
     var user = options.user || "admin";
@@ -36,6 +36,17 @@ var jsdb= (function(window, document){
                         break;
                     }
                     return response;
+                }
+        };
+        
+        system.debug = {
+                print: function(item, label){
+                    if(options.debug){
+                        if (!label) {
+                            label = "system debug: ";
+                        }
+                        console.log(label, item);
+                    }
                 }
         };
         /**
@@ -114,6 +125,139 @@ var jsdb= (function(window, document){
                     }
                     response.results = [item];
                     return response;
+                },
+                isNumber: function(item){
+                    var response = this.checktype(item);
+                    if (!response.error && response.results[0] === "number") {
+                        response = system.response.getResponse("ok");
+                    }
+                    else{
+                        response = system.response.getResponse("error");
+                    }
+                    response.results = [item];
+                    return response;
+                },
+                areStringsSimilar: function(item1, item2){
+                    var response = this.isString(item1);
+                    if (!response.error) {
+                        response = this.isString(item2);
+                    }
+                    if (!response.error) {
+                        var score = 0;
+                        var longestString = (item1.length > item2.length) ? item1 : item2;
+                        var shortestString = (item1.length < item2.length) ? item1 : item2;
+                        //test length
+                        if (item1 === item2) {
+                            score += 100;
+                        }
+                        else { 
+                            if (item1.length === item2.length) {
+                                score += 10;
+                            }
+                            else{
+                                score += Math.floor((shortestString.length / longestString.length) * 10);
+                            }
+                          //test content similarity
+                            var contentScore = 0;
+                            var contentScoreMax = 0;
+                            var stringCounter = (shortestString.length < 100) ? shortestString.length : 100;
+                            for (var j = 0; j < stringCounter; j++){
+                                contentScoreMax += 20;
+                                if (shortestString[j].toLowerCase() === longestString[j].toLowerCase()){
+                                    contentScore += 20;
+                                }
+                                if (j && stringCounter > 1) {
+                                    var previousCharacter = j -1;
+                                    contentScoreMax += 1;
+                                    if (shortestString[j].toLowerCase() === longestString[previousCharacter].toLowerCase()){
+                                        contentScore += 1;
+                                    }
+                                }
+                                var nextCharacter = j + 1;
+                                contentScoreMax += 1;
+                                if (nextCharacter  < stringCounter) {
+                                    if (shortestString[j].toLowerCase() === longestString[nextCharacter].toLowerCase()){
+                                        contentScore += 1;
+                                    }
+                                }
+                            }
+system.debug.print(contentScore);
+                            contentScore = Math.floor((contentScore / contentScoreMax) * 50);
+                            score += contentScore;
+system.debug.print(contentScoreMax);
+                            contentScore = 0;
+                            contentScoreMax = 0;
+                            if(shortestString >= 6) {
+                                var sliceSize = Math.floor(shortestString.length / 3);
+                                var shortestStringSlice = (shortestString.slice(0, sliceSize)).toLowerCase();
+                                var longestStringSlice = (longestString.slice(0, sliceSize)).toLowerCase();
+                                
+                                contentScoreMax += 33;
+                                if (shortestStringSlice === longestStringSlice) {
+                                    contentScore += 33;
+                                }
+system.debug.print(contentScore);
+                                shortestStringSlice = (shortestString.slice(0, sliceSize * 2)).toLowerCase();
+                                longestStringSlice = (longestString.slice(0, sliceSize * 2)).toLowerCase();
+                                
+                                contentScoreMax += 33;
+                                if (shortestStringSlice === longestStringSlice) {
+                                    contentScore += 33;
+                                }
+system.debug.print(contentScore);
+                                shortestStringSlice = (shortestString.slice(0, sliceSize * 3)).toLowerCase();
+                                longestStringSlice = (longestString.slice(0, sliceSize * 3)).toLowerCase();
+                                
+                                contentScoreMax += 33;
+                                if (shortestStringSlice === longestStringSlice) {
+                                    contentScore += 33;
+                                }
+                                contentScore = Math.floor((contentScore / contentScoreMax) * 50);
+system.debug.print(contentScore);
+                                score += contentScore;
+                            }
+                        }
+system.debug.print(score);
+                        if (score > 60) {
+                            response = system.response.getResponse("ok");
+                            response.message = "Items are similar.";
+                            response.results[item1,item2];
+                        }
+                        else{
+                            response = system.response.getResponse("error");
+                            response.message = "Items are not similar.";
+                            response.results[item1,item2];
+                        }
+                    }
+                    return response;
+                },
+                isSimilar: function(item1, item2){
+                    var score = 0;
+                    var response1 = this.isArray(item1);
+                    var response2 = this.isArray(item2);
+                    if (!response1.error && !response2.error) {
+                        score += 10;
+                        if(item1.length === item2.length){
+                            score += 10;
+                            var counter = item1.length;
+                            var arrayScore = 0;
+                            for(var i = 0; i < counter; i++){
+                                var stringCheck1 = this.isString(item1[i]);
+                                var stringCheck2 = this.isString(item2[i]);
+                                var numberCheck1 = this.isNumber(item1[i]);
+                                var numberCheck2 = this.isNumber(item2[i]);
+                                var arrayCheck1 = this.isArray(item1[i]);
+                                var arrayCheck2 = this.isArray(item2[i]);
+                                var objectCheck1 = this.isObject(item1[i]);
+                                var objectCheck2 = this.isObject(item2[i]);
+                                
+                                if (!stringCheck1.error && !stringCheck2.error) {
+                                    arrayScore += 10;
+                                    var stringsCheck = areStringsSimilar(item1[i], item2[i]);
+                                }
+                            }
+                        }
+                    }
                 }
         };
         
@@ -249,6 +393,7 @@ var jsdb= (function(window, document){
                     if (!response.error) {
                         record = response.results[0];
                         tables[tableName].push(record);
+                        response.message = "success record added to " + tableName + ".";
                     }
                 }
             }
@@ -266,9 +411,9 @@ var jsdb= (function(window, document){
         				if (record) {
         					response = system.response.getResponse("ok");
         					response.results = [record];
-        					response.message = "Success, record found."
+        					response.message = "Success, record found.";
         				}
-        				else{
+        				else {
         					response = system.response.getResponse("error");
         					response.message = "The record could not be found.";
         				}
@@ -281,6 +426,160 @@ var jsdb= (function(window, document){
         	}
         	return response;
         }
+        
+        function removeRecord(tableName, recordId){
+            var response = checkTableExist(tableName);
+            if (!response.error) {
+                response = system.data.isString(recordId);
+                if (!response.error) {
+                    recordId = parseFloat(recordId);
+                    if (recordId || recordId === 0) {
+                        var record = tables[tableName][recordId];
+                        if (record) {
+                            if(!record["_" + namespace + "_lock"]) {
+                                tables[tableName][recordId] = null;
+                                response = system.response.getResponse("ok");
+                                response.results = [record];
+                                response.message = "Success, record removed.";
+                            }
+                            else {
+                                response = system.response.getResponse("error");
+                                response.message = "The record is locked and cannot be removed.";
+                            }
+                        }
+                        else {
+                            response = system.response.getResponse("error");
+                            response.message = "The record could not be found.";
+                        }
+                    }
+                }
+            }
+            return response;
+        }
+        
+        function getRecords(tableName, start, stop){
+            var response = checkTableExist(tableName);
+            var records = [];
+            if (!response.error) {
+                response = system.data.isString(start);
+                if (!response.error) {
+                    if (start === "*") {
+                        records = tables[tableName];
+                        response.message = "Success, all records retreived.";
+                        response.results = records;
+                    }
+                    else{
+                        response = system.data.isString(stop);
+                        if (!response.error) {
+                            var start = parseFloat(start);
+                            var stop = parseFloat(stop);
+                            if ((start || start === 0) && stop) {
+                                if (stop > start) {
+                                    var counter = tables[tableName].length;
+                                    for(var i = 0; i < counter; i++){
+                                        records.push(tables[tableName][i]);
+                                    }
+                                    response.message = "Success, " + records.length + " retreived.";
+                                    response.results = records;
+                                }
+                                else {
+                                    response = system.response.getResponse("error");
+                                    error.message = "Invalid range specified.";
+                                }
+                            }
+                            else {
+                                response = system.response.getResponse("error");
+                                error.message = "Invalid range specified.";
+                            }
+                        }
+                    }
+                }
+            }
+            return response;
+        }
+        
+        function selectRecords(tableName, criteria){
+            var response = checkTableExist(tableName);
+            var records = [];
+            if (!response.error) {
+                response = system.data.isObject(criteria);
+                if (!response.error) {
+                    var counter = tables[tableName].length;
+                    if (counter > 0) {
+                        for(var i = 0; i < counter; i++){
+                            var record = tables[tableName][i];
+                            var matches = 0;
+                            var properties = 0;
+                            if (record) {
+                                for(var param in criteria) {
+                                    properties++;
+                                    var recordParam = record[param];
+                                    if (recordParam) {
+                                        if (recordParam === criteria[param]) {
+                                            matches++;
+                                        }
+                                    }
+                                }
+                            }
+                            if (matches === properties) {
+                                records.push(record);
+                            }
+                        }
+                        if (records.length > 0) {
+                            response.message = "Success " + records.length + " records found.";
+                            response.results = records;
+                        }
+                        else {
+                            response.message = "No records found.";
+                            response.results = records;
+                        }
+                    }
+                    else {
+                        response = system.response.getResponse("error");
+                        response.message = "The table is empty.";
+                    }
+                }
+            }
+            return response;
+        }
+        
+        function searchRecords(tableName, criteria){
+            var response = checkTableExist(tableName);
+            var records = [];
+            if (!response.error) {
+                response = system.data.isObject(criteria);
+                if (!response.error) {
+                    var counter = tables[tableName].length;
+                    if (counter > 0){
+                        for(var i = 0; i < counter; i++){
+                            var record = tables[tableName][i];
+                            if (record) {
+                                var matches = 0;
+                                var properties = 0;
+                                for(var param in criteria) {
+                                    properties++;
+                                    var recordParam = record[param];
+                                    if (recordParam) {
+                                        /**
+                                         * @todo compare here
+                                         */
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else {
+                        response = system.response.getResponse("error");
+                        response.message = "The table is empty.";
+                    }
+                }
+            }
+            return response;
+        }
+        
+        /**
+         * axternal API for db
+         */
         
         db.getTableNames = function(){
             var response =  getTableNames();
@@ -296,13 +595,36 @@ var jsdb= (function(window, document){
             var response = createTable(tableName);
             return response;
         };
+        
         db.addRecord = function(tableName, record, lock){
             var response = addRecord(tableName, record, lock);
             return response;
-        },
+        };
+        
         db.getRecord = function(tableName, recordId){
         	var response = getRecord(tableName, recordId);
             return response;
+        };
+        
+        db.removeRecord = function(tableName, recordId){
+            var response = removeRecord(tableName, recordId);
+            return response;
+        };
+        
+        db.getRecords = function(tableName, start, stop) {
+            var response = getRecords(tableName, start, stop);
+            return response;
+        };
+        
+        db.selectRecords = function(tableName, criteria) {
+            var response = selectRecords(tableName, criteria);
+            return response;
+        };
+        
+        if (options.superUser) {
+            db.getSystem = function(){
+                return system;
+            };
         }
         
         return db;
@@ -312,4 +634,4 @@ var jsdb= (function(window, document){
          jsdb = createDB();
     }
     return jsdb;
-})( window, document, options);
+})(options);
