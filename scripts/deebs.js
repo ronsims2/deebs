@@ -1,23 +1,25 @@
-var options = {
-        superUser: true,
-        user: "rsims",
-        debug: true
-};
-
-var jsdb= (function(options){
+;(function(options){
     
     if (!options) {
         options = {};
     }
-    var jsdb;
-    var namespace = options.namespace || "jsdb";
+    var deebs;
+    var namespace = options.namespace || "deebs";
     var user = options.user || "admin";
+    var debug = options.debug || false;
+    var superUser = options.superUser || false;
+    
     var db = {};
     var tables = {
             tableNames: [{
                 name: "tableNames",
                 owner: "root"
             }]
+    };
+    
+    recordMetaData = {
+            lock: "_" + namespace + "_lock",
+            id: "_" + namespace + "_id"
     };
     
     function createDB(){
@@ -44,9 +46,77 @@ var jsdb= (function(options){
                 }
         };
         
+        system.setOptions = function(options){
+            var response = this.data.isObject(options);
+            if (!response.error) {
+                response = this.data.isString(options.namesapce);
+                if (!response.error) {
+                    namespace = options.namespace || "deebs";
+                }
+                
+                response = this.data.isString(options.user);
+                if (!response.error) {
+                    user = options.user || "admin";
+                }
+                
+                response = this.data.isBoolean(options.superUser);
+                if (!response.error) {
+                    superUser = options.superUser || false;
+                }
+                
+                response = this.data.isBoolean(options.debug);
+                if (!response.error) {
+                    debug = options.debug || false;
+                }
+                
+                this.init();
+                
+                response = this.response.getResponse("ok");
+                response.message = "Success, options set.";
+                response.results = arguments;
+            }
+            return response;
+        };
+        system.init = function(){
+            if (superUser) {
+                this.initSuperUser();
+            }
+        };
+        
+        system.extend = function(newMethod, methodName){
+            var response = this.data.isString(methodName);
+            if (!response.error) {
+                response = this.data.isFunction(newMethod);
+                if (!response.error) {
+                    if (!db[methodName]) {
+                        db[methodName] = newMethod;
+                    }
+                    else if (superUser){
+                        db[methodName] = newMethod;
+                    }
+                    else {
+                        response = this.response.getResponse("error");
+                        response.message = methodName +  " already exist.";
+                        response.results = [methodName];
+                    }
+                }
+            }
+            return response;
+        };
+        
+        system.initSuperUser = function(){
+            db.getSystem = function(){
+                    return system;
+            };
+
+            db.getTables = function(){
+                    return tables;
+            };
+        };
+        
         system.debug = {
                 print: function(item, label){
-                    if (options.debug && console) {
+                    if (debug && console) {
                         if (!label) {
                             label = "system debug: ";
                         }
@@ -54,7 +124,7 @@ var jsdb= (function(options){
                     }
                 },
                 alert: function(item){
-                    if (options.debug && alert) {
+                    if (debug && alert) {
                         item = JSON.stringify(item);
                         alert(item);
                     }
@@ -91,6 +161,9 @@ var jsdb= (function(options){
                             case "[object String]":
                                 typeFound = "string";
                                 break;
+                            case "[object Boolean]":
+                                typeFound = "boolean";
+                                break;
                             default:
                                 typeFound = "undefined";
                                 break;
@@ -108,11 +181,11 @@ var jsdb= (function(options){
                     var response = this.checktype(item);
                     if (!response.error && response.results[0] === "array") {
                         response = system.response.getResponse("ok");
-                        response.message = "";
+                        response.message = "Success, item is an array.";
                     }
                     else{
                         response = system.response.getResponse("error");
-                        response.message = "";
+                        response.message = "Item not is an array.";
                     }
                     response.results = [item];
                     return response;
@@ -121,11 +194,11 @@ var jsdb= (function(options){
                     var response = this.checktype(item);
                     if (!response.error && response.results[0] === "object") {
                         response = system.response.getResponse("ok");
-                        response.message = "";
+                        response.message = "Success, item is an object.";
                     }
                     else{
                         response = system.response.getResponse("error");
-                        response.message = "";
+                        response.message = "item is not an object.";
                     }
                     response.results = [item];
                     return response;
@@ -134,11 +207,11 @@ var jsdb= (function(options){
                 	var response = this.checktype(item);
                     if (!response.error && response.results[0] === "string") {
                         response = system.response.getResponse("ok");
-                        response.message = "";
+                        response.message = "Success, item is a string.";
                     }
                     else{
                         response = system.response.getResponse("error");
-                        response.message = "";
+                        response.message = "item is not a string.";
                     }
                     response.results = [item];
                     return response;
@@ -147,11 +220,11 @@ var jsdb= (function(options){
                     var response = this.checktype(item);
                     if (!response.error && response.results[0] === "number") {
                         response = system.response.getResponse("ok");
-                        response.message = "";
+                        response.message = "Success, item is a number.";
                     }
                     else{
                         response = system.response.getResponse("error");
-                        response.message = "";
+                        response.message = "item is not a number.";
                     }
                     response.results = [item];
                     return response;
@@ -160,11 +233,24 @@ var jsdb= (function(options){
                     var response = this.checktype(item);
                     if (!response.error && response.results[0] === "function") {
                         response = system.response.getResponse("ok");
-                        response.message = "";
+                        response.message = "Success, item is a function.";
                     }
                     else{
                         response = system.response.getResponse("error");
-                        response.message = "";
+                        response.message = "Item is not a function.";
+                    }
+                    response.results = [item];
+                    return response;
+                },
+                isBoolean: function(item){
+                    var response = this.checktype(item);
+                    if (!response.error && response.results[0] === "boolean") {
+                        response = system.response.getResponse("ok");
+                        response.message = "Success, item is a boolean.";
+                    }
+                    else{
+                        response = system.response.getResponse("error");
+                        response.message = "item is not a boolean.";
                     }
                     response.results = [item];
                     return response;
@@ -338,6 +424,19 @@ var jsdb= (function(options){
                         }
                     }
                     return response;
+                },
+                copy: function(item){
+                    var response = this.isObject(item);
+                    if (!response.error) {
+                        var newItem = {};
+                        for(var param in item){
+                            newItem[param] = item[param];
+                        }
+                        response = system.response.getResponse("ok");
+                        response.message = "Success, object created.";
+                        response.results = [newItem];
+                    }
+                    return response;
                 }
         };
         
@@ -365,33 +464,30 @@ var jsdb= (function(options){
             var response = system.response.getResponse("ok");
             response.message = "This table name is ok.";
             for(var i = 0; i < counter ; i++) {
-                if (tableName === tn[i].name) {
-                    //check permissions to see if there should be a warning or a fail message
-                    switch(tn[i].owner){
-                        case "root":
-                            if (options.superUser){
-                                response = system.response.getResponse("warn");
-                                response.message = "To use this table name enable superUser and configure the system manual. This is not advised.";
-                                counter = i;
-                            }
-                            else {
+                if (tn[i]) {
+                    if (tableName === tn[i].name) {
+                        //check permissions to see if there should be a warning or a fail message
+                        switch(tn[i].owner){
+                            case "root":
+                                if (superUser){
+                                    response = system.response.getResponse("warn");
+                                    response.message = "To use this table name enable superUser and configure the system manually. "
+                                        + "This is not advised, nor documented.";
+                                    counter = i;
+                                }
+                                else {
+                                    response = system.response.getResponse("error");
+                                    response.message = "Table name already in use.";
+                                    counter = i;
+                                }
+                                break;
+                            default:
                                 response = system.response.getResponse("error");
                                 response.message = "Table name already in use.";
                                 counter = i;
-                            }
-                            break;
-                        default:
-                            response = system.response.getResponse("error");
-                            response.message = "Table name already in use.";
-                            counter = i;
-                            break;
+                                break;
+                        }
                     }
-                }
-            }
-            //allow debug
-            if (response.error) {
-                if (options.debug) {
-                    console.log(response.errorType + ":", response);
                 }
             }
             response = getTableNames();
@@ -442,7 +538,7 @@ var jsdb= (function(options){
         
         /**
          * Adds table entry on table object
-         * @returns {object} response with 
+         * @returns {object} response with table names;
          */
         function createTable(tableName){
             var response = checkTableName(tableName);
@@ -458,9 +554,37 @@ var jsdb= (function(options){
             }
             return response;
         }
+        
+        function dropTable(tableName){
+            var response = checkTableExist(tableName);
+            if (!response.error) {
+                if (tableName !== "tableNames"){
+                    delete tables[tableName];
+                    var newTableNames = [];
+                    var tableNames = tables["tableNames"];
+                    var counter = tableNames.length;
+                    if (counter > 1) {
+                        for (var i = 0; i < counter; i++) {
+                            if (tableNames[i].name !== tableName) {
+                                newTableNames.push(tableNames[i]);
+                            }
+                        }
+                        tables["tableNames"] = newTableNames;
+                        response = system.response.getResponse("ok");
+                        response.message = "Success, table " + tableName + " removed";
+                        response.results = [];
+                    }
+                }
+                else {
+                    response = system.response.getResponse("error");
+                    response.message = "This table cannot be removed.";
+                    response.results = [];
+                }
+            }
+            return response;
+        }
         /**
-         * Cannot loop through initRecord and call getResponse or any methods that  call it! 
-         * If so it will return the iterated member.
+         *Handle any object level record cleanup here.
          */
         function initRecord(record, recordId, lock){
             var response = system.data.isObject(record);
@@ -469,9 +593,17 @@ var jsdb= (function(options){
             		lock = false;
             	}
             	
-                record["_" + namespace + "_id"] = recordId;
-                record["_" + namespace + "_lock"] = lock;
-
+            	for(var param in record){
+            	    response = system.data.isFunction(record[param]);
+            	    if (!response.error) {
+            	        delete record[param];
+            	    }
+            	}
+            	
+                record[recordMetaData.id] = recordId;
+                record[recordMetaData.lock] = lock;
+                response = system.response.getResponse("ok");
+                response.message = "Success, record has been formatted.";
                 response.results = [record]; 
             }
             return response;
@@ -490,12 +622,15 @@ var jsdb= (function(options){
                     if (!response.error) {
                     	var recordId = response.results[0];
                     	response = initRecord(record, recordId, false);
-                    }
-                    if (!response.error) {
-                        record = response.results[0];
-                        
-                        tables[tableName].push(record);
-                        response.message = "Success, record added to " + tableName + ".";
+                    	if (!response.error) {
+                            record = response.results[0];
+                            response = system.data.copy(record);
+                            if (!response.error) {
+                                record = response.results[0];
+                                tables[tableName].push(record);
+                                response.message = "Success, record added to " + tableName + ".";
+                            }
+                        }
                     }
                 }
             }
@@ -535,9 +670,13 @@ var jsdb= (function(options){
         			if (recordId || recordId === 0) {
         				var record = tables[tableName][recordId];
         				if (record) {
-        					response = system.response.getResponse("ok");
-        					response.results = [record];
-        					response.message = "Success, record found.";
+        				    response = system.data.copy(record);
+        				    if (!response.error) { 
+        				        record = response.results[0];
+                                response = system.response.getResponse("ok");
+                                response.results = [record];
+                                response.message = "Success, record found.";
+        				    }
         				}
         				else {
         					response = system.response.getResponse("error");
@@ -562,7 +701,7 @@ var jsdb= (function(options){
                     if (recordId || recordId === 0) {
                         var record = tables[tableName][recordId];
                         if (record) {
-                            if(!record["_" + namespace + "_lock"]) {
+                            if(!record[recordMetaData.lock]) {
                                 tables[tableName][recordId] = null;
                                 response = system.response.getResponse("ok");
                                 response.results = [record];
@@ -598,12 +737,16 @@ var jsdb= (function(options){
                         response = system.data.isString(stop);
                         if (!response.error) {
                             var start = parseFloat(start);
-                            var stop = parseFloat(stop);
-                            if ((start || start === 0) && stop) {
+                            var stop = parseFloat(stop) + 1;
+                            if ((start || start === 0) && stop <= tables[tableName].length) {
                                 if (stop > start) {
-                                    var counter = tables[tableName].length;
-                                    for(var i = 0; i < counter; i++){
-                                        records.push(tables[tableName][i]);
+                                    var counter = stop;
+                                    for(var i = start; i < counter; i++){
+                                        response =  system.data.copy(tables[tableName][i]);
+                                        if (!response.error) {
+                                            var record = response.results[0];
+                                            records.push(record);
+                                        }
                                     }
                                     response.message = "Success, " + records.length + " retreived.";
                                     response.results = records;
@@ -678,7 +821,10 @@ var jsdb= (function(options){
                                 }
                             }
                             if (matches === properties) {
-                                records.push(record);
+                                response = system.data.copy(record);
+                                if (!response.error) {
+                                    records.push(record);
+                                }
                             }
                         }
                         if (records.length > 0) {
@@ -712,7 +858,10 @@ var jsdb= (function(options){
                             for(var i = 0; i < records.length; i++){
                                 response = system.data.areLikeObjects(record, records[i]);
                                 if (!response.error) {
-                                    matches.push(records[i]);
+                                    response = system.data.copy(record);
+                                    if (!response.error) {
+                                        matches.push(records[i]);
+                                    }
                                 }
                             }
                         }
@@ -726,6 +875,97 @@ var jsdb= (function(options){
                             response.results = matches;
                         }
                     }
+                }
+            }
+            return response;
+        }
+        
+        function getUnique(tableName, dedupe){
+            var response = checkTableExist(tableName);
+            if (!response.error) {
+                var records = tables[tableName];
+                var counter = records.length;
+                if (counter > 0) {
+                    var unique = [];
+                    var removed = [];
+                    for(var i = 0; i < counter; i++){
+                        response = system.data.copy(records[i]);
+                        if (!response.error) {
+                            var record = response.results[0];
+                            delete record[recordMetaData.id];
+                            delete record[recordMetaData.lock];
+                            response = selectRecords(tableName, record);
+                            if (!response.error) {
+                                if (response.results.length === 1) {
+                                    response = system.data.copy(records[i]);
+                                    if (!response.error) {
+                                        unique.push(response.results[0]);
+                                    }
+                                }
+                                else {
+                                    if (dedupe === true) {
+                                        response = system.data.copy(records[i]);
+                                        if (!response.error) {
+                                            removed.push(response.results[0]);
+                                        }
+                                        records[i] = null;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (unique.length > 0) {
+                        response = system.response.getResponse("ok");
+                        var dedupeMessage = "Success, duplicate records removed.";
+                        var message = "Success, " + unique.length + " unique records found.";
+                        response.message = (dedupe === true) ? dedupeMessage : message;
+                        response.results = (dedupe === true) ? removed : unique;
+                    }
+                    else {
+                        response = system.response.getResponse("error");
+                        response.message = "No unique record found.";
+                        response.results = unique;
+                    }
+                }
+                else {
+                    response = system.response.getResponse("error");
+                    response.message = "Table contains no records.";
+                    response.results = [];
+                }
+            }
+            return response;
+        }
+        
+        function updateRecord(tableName, recordId, update, unlock){
+            var response = getRecord(tableName, recordId);
+            var record;
+            if (!response.error) {
+                record = response.results[0];
+                if (record[recordMetaData.lock] && !unlock) {
+                    response = system.response.getResponse("error");
+                    response.message = "This record cannot be updated because it is locked.";
+                    response.results = [recordId];
+                    return response;
+                }
+            }
+            
+            response = system.data.isObject(update);
+            
+            if (!response.error && record) {
+                for (var param in update) {
+                    response = system.data.isFunction(update[param]);
+                    if (response.error) {
+                        record[param] = update[param];
+                    }
+                }
+                
+                var recordIndex = parseFloat(recordId);
+                
+                if (recordIndex || recordIndex === 0) {
+                    tables[tableName][recordIndex] = record;
+                    response = system.response.getResponse("ok");
+                    response.message = "Success, record " + recordId + " updated.";
+                    response.results = [record];
                 }
             }
             return response;
@@ -795,6 +1035,11 @@ var jsdb= (function(options){
             return response;
         };
         
+        db.dropTable = function(tableName) {
+            var response = dropTable(tableName);
+            return response;
+        };
+        
         db.addRecord = function(tableName, record, lock){
             var response = addRecord(tableName, record, lock);
             return response;
@@ -848,25 +1093,57 @@ var jsdb= (function(options){
         db.getCollection = function(tableName, collection){
             var response = getCollection(tableName, collection);
             return response;
-        }
+        };
         
-        if (options.superUser) {
-            db.getSystem = function(){
-                return system;
-            };
-        }
+        db.getUnique = function(tableName){
+            var response = getUnique(tableName, false);
+            return response;
+        };
         
-        if (options.superUser) {
-            db.getTables = function(){
-                return tables;
-            };
-        }
+        db.deDupe = function(tableName){
+            var response = getUnique(tableName, true);
+            return response;
+        };
         
+        db.updateRecord = function(tableName, recordId, update){
+            var response = updateRecord(tableName, recordId, update);
+            return response;
+        };
+        
+        db.lockRecord = function(tableName, recordId){
+            var update = {};
+            update[recordMetaData.lock] = true;
+            var response = updateRecord(tableName, recordId, update);
+            return response;
+        };
+        
+        db.unlockRecord = function(tableName, recordId){
+            var update = {};
+            update[recordMetaData.lock] = false;
+            var response = updateRecord(tableName, recordId, update, true);
+            return response;
+        };
+        
+        db.setOptions = function(options){
+            var response = system.setOptions(options);
+            return response;
+        };
+        
+        db.extend = function(newMethod, methodName){
+            var response = system.extend(newMethod, methodName);
+            return response;
+        };
+        
+        system.init();
+
         return db;
     };
     
-    if (!jsdb) {
-         jsdb = createDB();
+    if (!deebs) {
+         deebs = createDB();
     }
-    return jsdb;
-})(options);
+    if (window) {
+        window.$db = deebs;
+    }
+    return deebs;
+})();
