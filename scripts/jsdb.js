@@ -777,7 +777,7 @@ var jsdb= (function(options){
         }
         
         /**
-         * axternal API for db
+         * External API for db
          */
         
         db.getTableNames = function(){
