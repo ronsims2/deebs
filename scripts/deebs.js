@@ -8,6 +8,7 @@
     var user = options.user || "admin";
     var debug = options.debug || false;
     var superUser = options.superUser || false;
+    var mode = options.easyMode || false;
     
     var db = {};
     var tables = {
@@ -19,7 +20,8 @@
     
     recordMetaData = {
             lock: "_" + namespace + "_lock",
-            id: "_" + namespace + "_id"
+            id: "_" + namespace + "_id",
+            unique: "_" + namespace + "_unique"
     };
     
     function createDB(){
@@ -69,6 +71,11 @@
                     debug = options.debug || false;
                 }
                 
+                response = this.data.isBoolean(options.mode);
+                if (!response.error) {
+                    debug = options.easyMode || false;
+                }
+                
                 this.init();
                 
                 response = this.response.getResponse("ok");
@@ -112,23 +119,6 @@
             db.getTables = function(){
                     return tables;
             };
-        };
-        
-        system.debug = {
-                print: function(item, label){
-                    if (debug && console) {
-                        if (!label) {
-                            label = "system debug: ";
-                        }
-                        console.log(label, item);
-                    }
-                },
-                alert: function(item){
-                    if (debug && alert) {
-                        item = JSON.stringify(item);
-                        alert(item);
-                    }
-                }
         };
         /**
          * returns {object} with results array that contains object type description.
@@ -638,7 +628,6 @@
         }
         
         function addRecords(tableName, records){
-            system.debug.print(records, "records");
             var response = checkTableExist(tableName);
             if (!response.error) {
                 response = system.data.isArray(records);
@@ -729,37 +718,37 @@
                 response = system.data.isString(start);
                 if (!response.error) {
                     if (start === "*") {
-                        records = tables[tableName];
-                        response.message = "Success, all records retreived.";
-                        response.results = records;
+                        start = "0";
+                        stop = tables[tableName].length.toString();
                     }
-                    else{
-                        response = system.data.isString(stop);
-                        if (!response.error) {
-                            var start = parseFloat(start);
-                            var stop = parseFloat(stop) + 1;
-                            if ((start || start === 0) && stop <= tables[tableName].length) {
-                                if (stop > start) {
-                                    var counter = stop;
-                                    for(var i = start; i < counter; i++){
-                                        response =  system.data.copy(tables[tableName][i]);
-                                        if (!response.error) {
-                                            var record = response.results[0];
-                                            records.push(record);
-                                        }
+                    response = system.data.isString(stop);
+                    if (!response.error) {
+                        var start = parseFloat(start);
+                        var stop = parseFloat(stop) +1;
+                        if ((start || start === 0) && (stop -1) <= tables[tableName].length) {
+                            if (stop > start) {
+                                var counter = stop;
+                                for(var i = start; i < counter; i++){
+                                    response =  system.data.copy(tables[tableName][i]);
+                                    if (!response.error) {
+                                        var record = response.results[0];
+                                        records.push(record);
                                     }
-                                    response.message = "Success, " + records.length + " retreived.";
-                                    response.results = records;
                                 }
-                                else {
-                                    response = system.response.getResponse("error");
-                                    error.message = "Invalid range specified.";
-                                }
+                                response = system.response.getResponse("ok");
+                                response.message = "Success, " + records.length + " retreived.";
+                                response.results = records;
                             }
                             else {
                                 response = system.response.getResponse("error");
-                                error.message = "Invalid range specified.";
+                                response.message = "Invalid range specified.";
+                                response.results = [];
                             }
+                        }
+                        else {
+                            response = system.response.getResponse("error");
+                            response.message = "Invalid range specified.";
+                            response.results = [];
                         }
                     }
                 }
@@ -799,46 +788,50 @@
         
         function selectRecords(tableName, criteria){
             var response = checkTableExist(tableName);
-            var records = [];
             if (!response.error) {
                 response = system.data.isObject(criteria);
                 if (!response.error) {
-                    var counter = tables[tableName].length;
-                    if (counter > 0) {
-                        for(var i = 0; i < counter; i++){
-                            var record = tables[tableName][i];
-                            var matches = 0;
-                            var properties = 0;
-                            if (record) {
-                                for(var param in criteria) {
+                    response = getRecords(tableName, "*");
+                    if (!response.error) {                      
+                        var records = response.results;
+                        var counter = records.length;
+                        if (counter > 0) {
+                            var selected = [];
+                            for(var i = 0; i < counter; i++){
+                                var matches = 0;
+                                var properties = 0;
+                                
+                                for(var param in criteria){
                                     properties++;
-                                    var recordParam = record[param];
-                                    if (recordParam) {
-                                        if (recordParam === criteria[param]) {
-                                            matches++;
-                                        }
+                                    if (records[i][param] === criteria[param]){
+                                        matches++;
+                                    }
+                                }
+                                if (properties > 0 && matches === properties) {
+                                    response = system.data.copy(records[i]);
+                                    if (!response.error) {
+                                        var record = response.results[0];
+                                        selected.push(record);
                                     }
                                 }
                             }
-                            if (matches === properties) {
-                                response = system.data.copy(record);
-                                if (!response.error) {
-                                    records.push(record);
-                                }
+                            if (selected.length > 0) {
+                                response = system.response.getResponse("ok");
+                                response.message = "Success, " + selected.length + " records found";
+                                response.results = selected;
+                            }
+                            else{
+                                response = system.response.getResponse("error");
+                                response.message = "No records found.";
+                                response.results = [];
                             }
                         }
-                        if (records.length > 0) {
-                            response.message = "Success " + records.length + " records found.";
-                            response.results = records;
-                        }
                         else {
-                            response.message = "No records found.";
-                            response.results = records;
+                            //should never get here, but just in case.
+                            response = system.response.getResponse("error");
+                            response.message = "The table searched is empty.";
+                            response.results = [];
                         }
-                    }
-                    else {
-                        response = system.response.getResponse("error");
-                        response.message = "The table is empty.";
                     }
                 }
             }
@@ -856,23 +849,32 @@
                         var matches = [];
                         if (records.length > 0) {
                             for(var i = 0; i < records.length; i++){
-                                response = system.data.areLikeObjects(record, records[i]);
-                                if (!response.error) {
-                                    response = system.data.copy(record);
+                                if (records[i]) {
+                                    response = system.data.areLikeObjects(record, records[i]);
                                     if (!response.error) {
-                                        matches.push(records[i]);
+                                        response = system.data.copy(records[i]);
+                                        if (!response.error) {
+                                            var likeRecord = response.results[0];
+                                            matches.push(likeRecord);
+                                        }
                                     }
                                 }
                             }
                         }
                         else{
-                            response = system.response.getResponse("ok");
+                            response = system.response.getResponse("error");
                             response.message = "No like records found.";
+                            response.results = [];
                         }
-                        if (matches.length > 0){
+                        if (matches.length > 0) {
                             response = system.response.getResponse("ok");
-                            response.message = matches.length + " like records found.";
+                            response.message = "Success, like records found.";
                             response.results = matches;
+                        }
+                        else {
+                            response = system.response.getResponse("error");
+                            response.message = "No like records found.";
+                            response.results = [];
                         }
                     }
                 }
@@ -883,54 +885,52 @@
         function getUnique(tableName, dedupe){
             var response = checkTableExist(tableName);
             if (!response.error) {
-                var records = tables[tableName];
-                var counter = records.length;
-                if (counter > 0) {
-                    var unique = [];
-                    var removed = [];
-                    for(var i = 0; i < counter; i++){
-                        response = system.data.copy(records[i]);
-                        if (!response.error) {
-                            var record = response.results[0];
-                            delete record[recordMetaData.id];
-                            delete record[recordMetaData.lock];
-                            response = selectRecords(tableName, record);
+                response = getRecords(tableName, "*");
+                if (!response.error) {
+                    var records = response.results;
+                    var counter = records.length;
+                    if (counter > 0) {
+                        var unique = [];
+                        var removed = [];
+                        for(var i = 0; i < counter; i++){
+                            response = system.data.copy(records[i]);
                             if (!response.error) {
-                                if (response.results.length === 1) {
-                                    response = system.data.copy(records[i]);
-                                    if (!response.error) {
-                                        unique.push(response.results[0]);
-                                    }
-                                }
-                                else {
-                                    if (dedupe === true) {
-                                        response = system.data.copy(records[i]);
-                                        if (!response.error) {
-                                            removed.push(response.results[0]);
-                                        }
-                                        records[i] = null;
-                                    }
-                                }
+                                var record = response.results[0];
+                                delete record[recordMetaData.id];
+                                delete record[recordMetaData.lock];
+                                response = selectRecords(tableName, record);
+                                if (!response.error) {//check selected records
+                                    /**
+                                     * @todo rewrite unique/dedupe logic here
+                                     * tag first as unique if no unique found in array
+                                     * loop through again and fill array with unique
+                                     * change method name to idUnique
+                                     * create get unique as one that returns the unique
+                                     * create dedupe that set non unique to null
+                                     * fix api refernce to match new functions
+                                     */
+                                    unique.push[response.results]
+                                }//end check selected records
                             }
                         }
-                    }
-                    if (unique.length > 0) {
-                        response = system.response.getResponse("ok");
-                        var dedupeMessage = "Success, duplicate records removed.";
-                        var message = "Success, " + unique.length + " unique records found.";
-                        response.message = (dedupe === true) ? dedupeMessage : message;
-                        response.results = (dedupe === true) ? removed : unique;
+                        if (unique.length > 0) {
+                            response = system.response.getResponse("ok");
+                            var dedupeMessage = "Success, duplicate records removed.";
+                            var message = "Success, " + unique.length + " unique records found.";
+                            response.message = (dedupe === true) ? dedupeMessage : message;
+                            response.results = (dedupe === true) ? removed : unique;
+                        }
+                        else {
+                            response = system.response.getResponse("error");
+                            response.message = "No unique record found.";
+                            response.results = unique;
+                        }
                     }
                     else {
                         response = system.response.getResponse("error");
-                        response.message = "No unique record found.";
-                        response.results = unique;
+                        response.message = "Table contains no records. error 2";
+                        response.results = [];
                     }
-                }
-                else {
-                    response = system.response.getResponse("error");
-                    response.message = "Table contains no records.";
-                    response.results = [];
                 }
             }
             return response;

@@ -3,65 +3,139 @@
 <head>
 <script src="scripts/deebs.js"></script>
 <script>
-var tn = "table1";
-var opts = $db.setOptions({user: "Gandorf",
+var tn = "great_books";// table names
+
+//Configuration options
+var opts = {
     superUser: true,
-    user: "Ronny",
+    user: "librarian",
     debug: true,
     indexOffset: true
-});
+};
 
+//Set options
+$db.setOptions(opts);
+
+//Create a table
 $db.createTable(tn);
-$db.addRecord(tn, {first: "Ron", last: "Sims", adress: "10936 Drexel", age: 34, heigh: 6, crunk: function(){alert("what!");}});
-$db.addRecord(tn, {first: "Don", last: "zims", adress: "10936 Drexel", age: 34, heigh: 6});
-$db.addRecord(tn, {first: "Lon", last: "Sims", adress: "10936 Drexel", age: 34, heigh: 6});
-$db.addRecord(tn, {first: "Jon", last: "Dims"});
-$db.addRecord(tn, {first: "Son", last: "Zims"});
 
-var moreRecords = [
-                   {first: "zon", last: "Sims", adress: "10936 Drexel", age: 34, heigh: 6,crunk: function(){alert("what!");}},
-                   {first: "Lon", last: "Sims", adress: "10936 Drexel", age: 34, heigh: 4,crunk: function(){alert("what!");}},
-                   {first: "won", last: "Sims", adress: "10936 Drexel", age: 34, heigh: 5},
-                   {first: "Tron", last: "Sims", adress: "10936 Drexel", age: 31, heigh: 6, crunk: function(){alert("what!");}},
-                   {first: "Gwon", last: "dims", adress: "10936 Drexel", age: 32, heigh: 6}
-                   ];
-                   
-for(var i = 0; i < moreRecords.length; i++){
-    $db.addRecord(tn, moreRecords[i]);
-    $db.addRecord(tn, moreRecords[i]);
-}
-                   
-$db.addRecords(tn, moreRecords);
-
-var response = $db.getRecords(tn, "*");
-console.log("All Records", response);
-
-var criteria = {
-        first:"Lon",
-        last:"Sims"
+var book1 = {
+        title: "Hitchhiker's Guide to the Galaxy",
+        author: "Douglas Adams",
+        rating: 10       
 };
 
-response = $db.selectRecords(tn, criteria);
-console.log("Selected Records", response);
-//var sys = $db.getSystem();
-//var stringCheck = sys.data.areLikeStrings("Doggie", "Dog");
-//console.log("Similar check", stringCheck);
+//add a record
+$db.addRecord(tn, book1);
 
-var record = {first: "Ron", last: "Sims", adress: "10936 Drexel", age: 34, heigh: 6};
-var likeCheck = $db.getLikeRecords(tn, record);
-console.log("like records", likeCheck);
+/**
+ *remove the same record by id, yup it is zero based, 
+ * we are programmers and this is javascript. When in Rome ... 
+ */
+$db.removeRecord(tn, "0");
 
-var update = {first: "Bobby", last: "Sullen", grade: 6};
+//add a bunch of records at once.
+var moreBooks = [{
+    title: "A Wrinkle in Time",
+    author: "Madeleine L'Engle",
+    rating: 9.5,
+    genre: "fiction",
+    recommended: true,
+    instock: true
+}, {
+    title: "Hitchhiker's Guide to the Galaxy",
+    author: "Douglas Adams",
+    rating: 10,
+    genre: "fiction",
+    recommended: true,
+    instock: true
+}, {
+    title: "A Wrinkle in Time",
+    author: "Madeleine L'Engle",
+    rating: 9.5,
+    genre: "fiction",
+    recommended: true,
+    instock: true
+}, {
+    title: "Things Fall Apart",
+    author: "Chinua Achebe",
+    rating: 10,
+    genre: "fiction",
+    recommended: true,
+    instock: true
+},{
+    title: "A Man of the People",
+    author: "Chinua Achebe",
+    rating: 10,
+    genre: "fiction",
+    recommended: true,
+    instock: true
+}, {
+    title: "Hitchhiker's Guide to the Galaxy",
+    author: "Douglas Adams",
+    rating: 10,
+    genre: "fiction",
+    recommended: true,
+    instock: true
+}, {
+    title: "Adventures of Tom Sawyer",
+    author: "Mark Twain",
+    rating: 9.5,
+    genre: "fiction",
+    recommended: false,
+    instock: true
+}];
 
-var updatedRecord = $db.updateRecord(tn, "2", update);
+//
+$db.addRecords(tn, moreBooks);
 
-var nf = function(x){
-    console.log(this);
-    console.log(x);
+//Get all the records from a table.
+var books = $db.getRecords(tn, "*");
+
+//Get a selection (2,3,4,5) of records.
+var otherBooks = $db.getRecords(tn, "2", "5");
+
+//Find by a record property.
+var criteria = {author: "Chinua Achebe"};
+var achebeBooks = $db.selectRecords(tn, criteria);
+
+
+//Find records similar to others
+var goodBook = $db.getRecord(tn, "1");
+
+if (!goodBook.error) {
+    goodBook = goodBook.results[0];
+} 
+
+var similarBooks = $db.getLikeRecords(tn, goodBook);
+
+//Find unique records
+var uniqueBooks = $db.getUnique(tn);
+
+var bookUpdate = {recommended: true, note: "This is a must read for all middle school students."};
+
+var updatedRecord = $db.updateRecord(tn, "7", bookUpdate);
+
+/**
+ * Extend deebs by adding custom methods.
+ */
+var getBookTitles = function(tableName){
+    var response = this.getRecords(tableName, "*");
+    var bookList = [];
+    if (!response.error) {
+        var books = response.results;
+        for (var i = 0; i < books.length; i++) {
+            if (books[i]) {
+                var bookName = books[i].title || " Name not provided.";
+                bookList.push(bookName);
+            }
+        }
+    }
+    return bookList;
 };
 
-var ext = $db.extend(nf,"addRecord")
-console.log("extend", ext);
+$db.extend(getBookTitles,"getBooksList");
+
 </script>
 </head>
 <body>
