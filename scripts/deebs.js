@@ -8,7 +8,7 @@
     var user = options.user || "admin";
     var debug = options.debug || false;
     var superUser = options.superUser || false;
-    var mode = options.easyMode || false;
+    var easyMode = options.easyMode || false;
     
     var db = {};
     var tables = {
@@ -25,6 +25,11 @@
     };
     
     function createDB(){
+        /**
+         * Sytem holds methods used by db app
+         * @method wrap - used to wrap method return values direct from other libraries in a Deebs response object. 
+         * It  gives a success message for truthy values and an error for falsey ones.
+         */
         var system = {};
         system.response = {
                 getResponse: function(type){
@@ -43,6 +48,23 @@
                         response.error = false;
                         response.errorType = null;
                         break;
+                    }
+                    return response;
+                },
+                wrap: function(value, message){
+                    var response = system.data.isString(message);
+                    if (response.error) {
+                        message = "";
+                    }
+                    
+                    response = this.getResponse("ok");
+                    response.message = message;
+                    response.results = [value];
+                    
+                    if (!value) {
+                        response = this.getResponse("error");
+                        response.message = "Uh-oh, somethign went wrong";
+                        response.results = [value];
                     }
                     return response;
                 }
@@ -71,9 +93,9 @@
                     debug = options.debug || false;
                 }
                 
-                response = this.data.isBoolean(options.mode);
+                response = this.data.isBoolean(options.easyMode);
                 if (!response.error) {
-                    debug = options.easyMode || false;
+                    easyMode = options.easyMode || false;
                 }
                 
                 this.init();
@@ -427,6 +449,25 @@
                         response.results = [newItem];
                     }
                     return response;
+                },
+                propertyExist: function(item, property){
+                    var response = this.isObject(item);
+                        if (!response.error) {
+                            response = this.isString(property);
+                            if (!response.error) {
+                                if (item[property] !== undefined){
+                                    response = system.response.getResponse("ok");
+                                    response.message = "Success, property " + property + " exist.";
+                                    response.results = [property];
+                                }
+                                else {
+                                    response = system.response.getResponse("error");
+                                    response.message = "Property " + property + " does not exist.";
+                                    response.results = [property];
+                                }
+                            }
+                        }
+                    return response;
                 }
         };
         
@@ -650,7 +691,7 @@
             return response;
         }
         
-        function getRecord(tableName, recordId){
+        function getRecord(tableName, recordId, plainFlag){
         	var response = checkTableExist(tableName);
         	if (!response.error){
         		response = system.data.isString(recordId);
@@ -662,6 +703,12 @@
         				    response = system.data.copy(record);
         				    if (!response.error) { 
         				        record = response.results[0];
+        				        if (plainFlag) {
+        				            for(var param in recordMetaData) {
+        				                var prop = recordMetaData[param];
+        				                delete record[prop];
+        				            }
+        				        }
                                 response = system.response.getResponse("ok");
                                 response.results = [record];
                                 response.message = "Success, record found.";
@@ -711,7 +758,7 @@
             return response;
         }
         
-        function getRecords(tableName, start, stop){
+        function getRecords(tableName, start, stop, plainFlag){
             var response = checkTableExist(tableName);
             var records = [];
             if (!response.error) {
@@ -732,6 +779,12 @@
                                     response =  system.data.copy(tables[tableName][i]);
                                     if (!response.error) {
                                         var record = response.results[0];
+                                        if (plainFlag) {
+                                            for(var param in recordMetaData) {
+                                                var prop = recordMetaData[param];
+                                                delete record[prop];
+                                            }
+                                        }
                                         records.push(record);
                                     }
                                 }
@@ -756,7 +809,7 @@
             return response;
         }
         
-        function getCollection(tableName, collection){
+        function getCollection(tableName, collection, plainFlag){
             var response = checkTableExist(tableName);
             if (!response.error) {
                 response = system.data.isArray(collection);
@@ -766,7 +819,7 @@
                         for(var i = 0; i < counter; i++){
                            var index = parseFloat(collection[i]);
                            if (index || index === 0) {
-                               var response = getRecord(tableName, collection[i]);
+                               var response = getRecord(tableName, collection[i], plainFlag);
                                if (!response.error) {
                                    records.push(response.results[0]);
                                }
@@ -882,7 +935,7 @@
             return response;
         }
         
-        function getUnique(tableName, dedupe){
+        function getUnique(tableName){
             var response = checkTableExist(tableName);
             if (!response.error) {
                 response = getRecords(tableName, "*");
@@ -890,8 +943,6 @@
                     var records = response.results;
                     var counter = records.length;
                     if (counter > 0) {
-                        var unique = [];
-                        var removed = [];
                         for(var i = 0; i < counter; i++){
                             response = system.data.copy(records[i]);
                             if (!response.error) {
@@ -899,38 +950,51 @@
                                 delete record[recordMetaData.id];
                                 delete record[recordMetaData.lock];
                                 response = selectRecords(tableName, record);
-                                if (!response.error) {//check selected records
-                                    /**
-                                     * @todo rewrite unique/dedupe logic here
-                                     * tag first as unique if no unique found in array
-                                     * loop through again and fill array with unique
-                                     * change method name to idUnique
-                                     * create get unique as one that returns the unique
-                                     * create dedupe that set non unique to null
-                                     * fix api refernce to match new functions
-                                     */
-                                    unique.push[response.results]
-                                }//end check selected records
+                                if (!response.error) {
+                                    var compareRecords = response.results;
+                                    var uniqueRecordId = compareRecords[0][recordMetaData.id];
+                                    uniqueRecordId = parseFloat(uniqueRecordId);
+                                    tables[tableName][uniqueRecordId][recordMetaData.unique] = true;
+                                    
+                                }
                             }
                         }
-                        if (unique.length > 0) {
-                            response = system.response.getResponse("ok");
-                            var dedupeMessage = "Success, duplicate records removed.";
-                            var message = "Success, " + unique.length + " unique records found.";
-                            response.message = (dedupe === true) ? dedupeMessage : message;
-                            response.results = (dedupe === true) ? removed : unique;
-                        }
-                        else {
-                            response = system.response.getResponse("error");
-                            response.message = "No unique record found.";
-                            response.results = unique;
-                        }
+                        var criteria = {};
+                        criteria[recordMetaData.unique] = true;
+                        response = selectRecords(tableName, criteria);
+                        response.message = "Success, unique records found.";
                     }
                     else {
                         response = system.response.getResponse("error");
                         response.message = "Table contains no records. error 2";
                         response.results = [];
                     }
+                }
+            }
+            return response;
+        }
+        
+        function deDupe(tableName){
+            var response = getUnique(tableName);
+            if (!response.error) {
+                var records= tables[tableName];
+                var counter = records.length;
+                var recordsRemoved = 0;
+                for(var i = 0; i < counter; i++){
+                    if (records[i] && !records[i][recordMetaData.unique]) {
+                        records[i] = null;
+                        recordsRemoved++;
+                    }
+                }
+                if(recordsRemoved) {
+                    response = system.response.getResponse("ok");
+                    response.message = "Success, " + recordsRemoved + " records removed.";
+                    response.results = [];
+                }
+                else {
+                    response = system.response.getResponse("error");
+                    response.message = "No records were removed.";
+                    response.results = [];
                 }
             }
             return response;
@@ -1022,91 +1086,236 @@
         
         db.getTableNames = function(){
             var response =  getTableNames();
+            if (easyMode) {
+                response = response.error ? false : response.results;
+                if (response) {
+                    if(response.length === 1) {
+                        response = response[0];
+                    }
+                }
+            }
             return response;
         };
         
         db.checkTableName = function(tableName){
             var response = checkTableName(tableName);
+            if (easyMode) {
+                response = response.error ? false : response.results;
+                if (response) {
+                    if(response.length === 1) {
+                        response = response[0];
+                    }
+                }
+            }
             return response;
         };
         
         db.createTable = function(tableName){
             var response = createTable(tableName);
+            if (easyMode) {
+                response = response.error ? false : response.results;
+                if (response) {
+                    if(response.length === 1) {
+                        response = response[0];
+                    }
+                }
+            }
             return response;
         };
         
         db.dropTable = function(tableName) {
             var response = dropTable(tableName);
+            if (easyMode) {
+                response = response.error ? false : response.results;
+                if (response) {
+                    if(response.length === 1) {
+                        response = response[0];
+                    }
+                }
+            }
             return response;
         };
         
         db.addRecord = function(tableName, record, lock){
             var response = addRecord(tableName, record, lock);
+            if (easyMode) {
+                response = response.error ? false : response.results;
+                if (response) {
+                    if(response.length === 1) {
+                        response = response[0];
+                    }
+                }
+            }
             return response;
         };
         
-        db.getRecord = function(tableName, recordId){
-        	var response = getRecord(tableName, recordId);
+        db.getRecord = function(tableName, recordId, plainFlag){
+        	var response = getRecord(tableName, recordId, plainFlag);
+        	if (easyMode) {
+                response = response.error ? false : response.results;
+                if (response) {
+                    if(response.length === 1) {
+                        response = response[0];
+                    }
+                }
+            }
             return response;
         };
         
         db.removeRecord = function(tableName, recordId){
             var response = removeRecord(tableName, recordId);
+            if (easyMode) {
+                response = response.error ? false : response.results;
+                if (response) {
+                    if(response.length === 1) {
+                        response = response[0];
+                    }
+                }
+            }
             return response;
         };
         
         db.getRecords = function(tableName, start, stop) {
             var response = getRecords(tableName, start, stop);
+            if (easyMode) {
+                response = response.error ? false : response.results;
+                if (response) {
+                    if(response.length === 1) {
+                        response = response[0];
+                    }
+                }
+            }
+            
             return response;
         };
         
         db.selectRecords = function(tableName, criteria) {
             var response = selectRecords(tableName, criteria);
+            if (easyMode) {
+                response = response.error ? false : response.results;
+                if (response) {
+                    if(response.length === 1) {
+                        response = response[0];
+                    }
+                }
+            }
             return response;
         };
         
         db.getLikeRecords = function(tableName, record){
             var response = getLikeRecords(tableName, record);
+            if (easyMode) {
+                response = response.error ? false : response.results;
+                if (response) {
+                    if(response.length === 1) {
+                        response = response[0];
+                    }
+                }
+            }
             return response;
         };
         
         db.pickle = function(){
             var response = pickle();
+            if (easyMode) {
+                response = response.error ? false : response.results;
+                if (response) {
+                    if(response.length === 1) {
+                        response = response[0];
+                    }
+                }
+            }
             return response;
         };
         
         db.unPickle = function(){
             var response = unPickle();
+            if (easyMode) {
+                response = response.error ? false : response.results;
+                if (response) {
+                    if(response.length === 1) {
+                        response = response[0];
+                    }
+                }
+            }
             return response;
         };
         
         db.getTableInfo = function(tableName){
             var response = getTableInfo(tableName);
+            if (easyMode) {
+                response = response.error ? false : response.results;
+                if (response) {
+                    if(response.length === 1) {
+                        response = response[0];
+                    }
+                }
+            }
             return response;
         };
         
         db.addRecords = function(tableName, records){
             var response = addRecords(tableName, records);
+            if (easyMode) {
+                response = response.error ? false : response.results;
+                if (response) {
+                    if(response.length === 1) {
+                        response = response[0];
+                    }
+                }
+            }
             return response;
         };
         
-        db.getCollection = function(tableName, collection){
-            var response = getCollection(tableName, collection);
+        db.getCollection = function(tableName, collection, plainFlag){
+            var response = getCollection(tableName, collection, plainFlag);
+            if (easyMode) {
+                response = response.error ? false : response.results;
+                if (response) {
+                    if(response.length === 1) {
+                        response = response[0];
+                    }
+                }
+            }
             return response;
         };
         
         db.getUnique = function(tableName){
-            var response = getUnique(tableName, false);
+            var response = getUnique(tableName);
+            if (easyMode) {
+                response = response.error ? false : response.results;
+                if (response) {
+                    if(response.length === 1) {
+                        response = response[0];
+                    }
+                }
+            }
             return response;
         };
         
         db.deDupe = function(tableName){
-            var response = getUnique(tableName, true);
+            var response = deDupe(tableName);
+            if (easyMode) {
+                response = response.error ? false : response.results;
+                if (response) {
+                    if(response.length === 1) {
+                        response = response[0];
+                    }
+                }
+            }
             return response;
         };
         
         db.updateRecord = function(tableName, recordId, update){
             var response = updateRecord(tableName, recordId, update);
+            if (easyMode) {
+                response = response.error ? false : response.results;
+                if (response) {
+                    if(response.length === 1) {
+                        response = response[0];
+                    }
+                }
+            }
             return response;
         };
         
@@ -1114,6 +1323,14 @@
             var update = {};
             update[recordMetaData.lock] = true;
             var response = updateRecord(tableName, recordId, update);
+            if (easyMode) {
+                response = response.error ? false : response.results;
+                if (response) {
+                    if(response.length === 1) {
+                        response = response[0];
+                    }
+                }
+            }
             return response;
         };
         
@@ -1121,16 +1338,40 @@
             var update = {};
             update[recordMetaData.lock] = false;
             var response = updateRecord(tableName, recordId, update, true);
+            if (easyMode) {
+                response = response.error ? false : response.results;
+                if (response) {
+                    if(response.length === 1) {
+                        response = response[0];
+                    }
+                }
+            }
             return response;
         };
         
         db.setOptions = function(options){
             var response = system.setOptions(options);
+            if (easyMode) {
+                response = response.error ? false : response.results;
+                if (response) {
+                    if(response.length === 1) {
+                        response = response[0];
+                    }
+                }
+            }
             return response;
         };
         
         db.extend = function(newMethod, methodName){
             var response = system.extend(newMethod, methodName);
+            if (easyMode) {
+                response = response.error ? false : response.results;
+                if (response) {
+                    if(response.length === 1) {
+                        response = response[0];
+                    }
+                }
+            }
             return response;
         };
         
