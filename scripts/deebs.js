@@ -492,36 +492,38 @@
         function checkTableName(tableName){
             var tn = tables.tableNames;
             var counter = tn.length;
-            var response = system.response.getResponse("ok");
-            response.message = "This table name is ok.";
-            for(var i = 0; i < counter ; i++) {
-                if (tn[i]) {
-                    if (tableName === tn[i].name) {
-                        //check permissions to see if there should be a warning or a fail message
-                        switch(tn[i].owner){
-                            case "root":
-                                if (superUser){
-                                    response = system.response.getResponse("warn");
-                                    response.message = "To use this table name enable superUser and configure the system manually. "
-                                        + "This is not advised, nor documented.";
-                                    counter = i;
-                                }
-                                else {
+            var response = system.data.isString(tableName);
+            if (!response.error) {
+            	response.message = "This table name is ok.";
+                for(var i = 0; i < counter ; i++) {
+                    if (tn[i]) {
+                        if (tableName === tn[i].name) {
+                            //check permissions to see if there should be a warning or a fail message
+                            switch(tn[i].owner){
+                                case "root":
+                                    if (superUser){
+                                        response = system.response.getResponse("warn");
+                                        response.message = "To use this table name enable superUser and configure the system manually. "
+                                            + "This is not advised, nor documented.";
+                                        counter = i;
+                                    }
+                                    else {
+                                        response = system.response.getResponse("error");
+                                        response.message = "Table name already in use.";
+                                        counter = i;
+                                    }
+                                    break;
+                                default:
                                     response = system.response.getResponse("error");
                                     response.message = "Table name already in use.";
                                     counter = i;
-                                }
-                                break;
-                            default:
-                                response = system.response.getResponse("error");
-                                response.message = "Table name already in use.";
-                                counter = i;
-                                break;
+                                    break;
+                            }
                         }
                     }
                 }
+                response = getTableNames();
             }
-            response = getTableNames();
             return response;
         }
         /**
@@ -574,14 +576,23 @@
         function createTable(tableName){
             var response = checkTableName(tableName);
             if (!response.error) {
-                var newTable = {
-                        name: tableName,
-                        owner:user
-                };
-                tables.tableNames.push(newTable);
-                tables[tableName] = [];
-                
-                response = getTableNames();
+            	var whiteSpace = /\s/g;
+            	tableName = tableName.replace(whiteSpace, "");
+                if (tableName) {
+                	var newTable = {
+                            name: tableName,
+                            owner:user
+                    };
+                    tables.tableNames.push(newTable);
+                    tables[tableName] = [];
+                    
+                    response = getTableNames();
+                }
+                else {
+                	response = system.response.getResponse("error");
+                	response.message = "Invalid table name specified.";
+                	response.results = [];
+                }
             }
             return response;
         }
