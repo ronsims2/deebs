@@ -681,6 +681,7 @@
         
         function addRecords(tableName, records){
             var response = checkTableExist(tableName);
+            var recordIDs = [];
             if (!response.error) {
                 response = system.data.isArray(records);
                 if (!response.error) {
@@ -689,8 +690,12 @@
                         if (!response.error) {
                             for(var i = 0; i < counter; i++){
                                 response = addRecord(tableName, records[i]);
+                                if (!response.error) {
+                                	recordIDs.push(response.results[0]);
+                                }
                             }
                         }
+                        response.results = recordIDs;
                     }
                     else {
                         response = system.response.getResponse("error");

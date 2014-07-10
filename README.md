@@ -1,7 +1,7 @@
 deebs
 =====
 
-Deebs is a simple JavaScript database library designed for browser based app.
+Deebs is a simple JavaScript database library designed for browser based apps.
 
 Deebs simplifies many common data operations, freeing you up to focus on the less mundane coding task.
 

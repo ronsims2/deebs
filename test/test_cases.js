@@ -48,6 +48,7 @@ QUnit.test("Add Records", function(assert){
 	assert.ok(response.error, "Invalid arsg (object instead of object array) supplied returns error");
 	response = $db.addRecords(tn, moreBooks);
 	assert.ok(!response.error, "Proper args supplied and records added");
+	assert.equal(response.results.length, moreBooks.length, "The collection returned reflects the records added.");
 	response = $db.getRecords(tn, "*");
 	assert.ok(!response.error, "Objects returned from getRecords");
 	assert.equal(response.results.length, moreBooks.length, "Objects returned from getRecords is equal to records added");
