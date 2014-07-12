@@ -18,7 +18,7 @@
             }]
     };
     
-    recordMetaData = {
+    var recordMetaData = {
             lock: "_" + namespace + "_lock",
             id: "_" + namespace + "_id",
             unique: "_" + namespace + "_unique"
@@ -774,6 +774,27 @@
             return response;
         }
         
+        function removeRecords(tableName, records){
+        	var recordsRemoved = [];
+        	var response = checkTableExist(tableName);
+        	if (!response.error) {
+        		response = system.data.isArray(records);
+        		if (!response.error) {
+        			var counter = records.length;
+        			for(var i = 0; i< counter; i++){
+        				response = removeRecord(tableName, records[i]);
+        				if (!response.error) {
+        					recordsRemoved.push(response.results[0]);
+        				}
+        			}
+        			response = system.response.getResponse("success");
+        			response.message = "Records successfully removed.";
+        			response.results = recordsRemoved;
+        		}
+        	}
+        	return response;
+        }
+        
         function getRecords(tableName, start, stop, plainFlag){
             var response = checkTableExist(tableName);
             var records = [];
@@ -1189,6 +1210,19 @@
                 }
             }
             return response;
+        };
+        
+        db.removeRecords = function(tableName, records){
+        	var response = removeRecords(tableName, records);
+        	if (easyMode) {
+        		response = response.error ? false : response.results;
+        		if (response) {
+                    if(response.length === 1) {
+                        response = response[0];
+                    }
+                }
+        	}
+        	return response;
         };
         
         db.getRecords = function(tableName, start, stop) {

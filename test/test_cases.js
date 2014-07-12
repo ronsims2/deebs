@@ -122,3 +122,15 @@ QUnit.test("Remove Record", function(assert){
 	console.log(response);
 	assert.ok((response.results.length === origRecords.results.length -1), "Record was removed from table");
 });
+
+QUnit.test("Remove Records", function(assert){
+	var records = ["1", "2", "3"];
+	var response = $db.removeRecords(tn, records);
+	assert.ok(!response.error,"Method returned with no errors");
+	response = $db.getRecords(tn, "1");
+	assert.ok(response.error, "record 1 not found because it was deleted");
+	response = $db.getRecords(tn, "2");
+	assert.ok(response.error, "record 2 not found because it was deleted");
+	response = $db.getRecords(tn, "3");
+	assert.ok(response.error, "record 3 not found because it was deleted");
+});
