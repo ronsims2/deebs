@@ -49,6 +49,40 @@
                         response.errorType = null;
                         break;
                     }
+                    //response methods
+                    response.getRecordId = function(){
+                    	var recordId = false;
+                    	var idKey = recordMetaData.id;
+                    	var results = this.results;
+                    	if (results.length === 1) {
+                    		var isObjectCheck = system.data.isObject(results[0]);
+                    		if (!isObjectCheck.error) {
+                    			if (results[0][idKey]) {
+                        			recordId = results[0][idKey];
+                        		}
+                    		}
+                    	}
+                    	return recordId;
+                    };
+                    
+                    response.get = function(){
+                    	var payload = false;
+                    	var results = this.results;
+                    	if (!this.error) {
+                    		switch (results.length){
+                    		case 0:
+                    			break;
+                    		case 1:
+                    			payload = this.results[0];
+                    			break;
+                    		default:
+                    			payload = this.results;
+                    			break;
+                    		}
+                    	}
+                    	return payload;
+                    };
+                    
                     return response;
                 },
                 wrap: function(value, message){
