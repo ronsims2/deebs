@@ -18,6 +18,24 @@ var book1 = {
         rating: 10       
 };
 
+var book2 = {
+        title: "The Restaurant at the End of the Universe",
+        author: "Douglas Adams",
+        rating: 9       
+};
+
+var book3 = {
+        title: "Life, the Universe and Everything",
+        author: "Douglas Adams",
+        rating: 9       
+};
+
+var book4 = {
+        title: "So Long, and Thanks for All the Fish",
+        author: "Douglas Adams",
+        rating: 9       
+};
+
 //add a bunch of records at once.
 var moreBooks = [{
     title: "A Wrinkle in Time",

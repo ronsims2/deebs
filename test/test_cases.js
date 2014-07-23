@@ -119,7 +119,6 @@ QUnit.test("Remove Record", function(assert){
 	var response = $db.removeRecord(tn, "7");
 	assert.ok(!response.error, "Remove record returned with no error");
 	response = $db.getRecords(tn, "*");
-	console.log(response);
 	assert.ok((response.results.length === origRecords.results.length -1), "Record was removed from table");
 });
 
@@ -133,4 +132,19 @@ QUnit.test("Remove Records", function(assert){
 	assert.ok(response.error, "record 2 not found because it was deleted");
 	response = $db.getRecords(tn, "3");
 	assert.ok(response.error, "record 3 not found because it was deleted");
+});
+
+QUnit.test("Response->getRecordId", function(assert){
+	var response = $db.addRecord(tn, book2);
+	assert.ok(!response.error, "Record Added");
+	var result = response.getRecordId();
+	assert.ok(result, "Record ID returned");
+});
+
+QUnit.test("Response->get", function(assert){
+	var response = $db.addRecords(tn, [book3, book4]);
+	console.log(response);
+	assert.ok(!response.error, "Record Added");
+	var results = response.get();
+	assert.equal(results.length, 2, "Results match records added");
 });
