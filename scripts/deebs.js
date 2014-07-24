@@ -696,17 +696,18 @@
                 if (!response.error){
                     response = getNewRecordId(tableName);
                     if (!response.error) {
-                    	var recordId = response.results[0];
-                    	response = initRecord(record, recordId, false);
+                    	var recordId = response.get();
+                    	response = system.data.copy(record);
                     	if (!response.error) {
-                            record = response.results[0];
-                            response = system.data.copy(record);
-                            if (!response.error) {
-                                record = response.results[0];
-                                tables[tableName].push(record);
+                    		console.log(response);
+                    		record = response.get();
+                    		response = initRecord(record, recordId, false);
+                    		if (!response.error) {
+                    			record = response.get();
+                    			tables[tableName].push(record);
                                 response.message = "Success, record added to " + tableName + ".";
-                            }
-                        }
+                    		}
+                    	}
                     }
                 }
             }
