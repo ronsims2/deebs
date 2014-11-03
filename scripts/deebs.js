@@ -1,8 +1,6 @@
-;(function(options){
+;(function(){
     
-    if (!options) {
-        options = {};
-    }
+    var options = {};
     var deebs;
     var namespace = options.namespace || "deebs";
     var user = options.user || "admin";
@@ -27,7 +25,7 @@
     function createDB(){
         /**
          * Sytem holds methods used by db app
-         * @method wrap - used to wrap method return values direct from other libraries in a Deebs response object. 
+         * @method wrap - used to wrap return values direct from other libraries in a deebs response object. 
          * It  gives a success message for truthy values and an error for falsey ones.
          */
         var system = {};
@@ -133,6 +131,7 @@
                 }
                 
                 this.init();
+                this.createAPI();
                 
                 response = this.response.getResponse("ok");
                 response.message = "Success, options set.";
@@ -143,6 +142,9 @@
         system.init = function(){
             if (superUser) {
                 this.initSuperUser();
+            }
+            else {
+            	this.killSuperUser();
             }
         };
         
@@ -176,6 +178,17 @@
                     return tables;
             };
         };
+        
+        system.killSuperUser = function(){
+        	if (db.getSystem) {
+        		delete db.getSystem;
+        	}
+        	
+        	if (db.getTables){
+        		delete db.getTables;
+        	}
+        };
+        
         /**
          * returns {object} with results array that contains object type description.
          */
@@ -1156,309 +1169,317 @@
          * External API for db
          */
         
-        db.getTableNames = function(){
-            var response =  getTableNames();
-            if (easyMode) {
-                response = response.error ? false : response.results;
-                if (response) {
-                    if(response.length === 1) {
-                        response = response[0];
+        function createAPI(){
+        	db.getTableNames = function(){
+                var response =  getTableNames();
+                if (easyMode) {
+                    response = response.error ? false : response.results;
+                    if (response) {
+                        if(response.length === 1) {
+                            response = response[0];
+                        }
                     }
                 }
-            }
-            return response;
-        };
-        
-        db.checkTableName = function(tableName){
-            var response = checkTableName(tableName);
-            if (easyMode) {
-                response = response.error ? false : response.results;
-                if (response) {
-                    if(response.length === 1) {
-                        response = response[0];
-                    }
-                }
-            }
-            return response;
-        };
-        
-        db.createTable = function(tableName){
-            var response = createTable(tableName);
-            if (easyMode) {
-                response = response.error ? false : response.results;
-                if (response) {
-                    if(response.length === 1) {
-                        response = response[0];
-                    }
-                }
-            }
-            return response;
-        };
-        
-        db.dropTable = function(tableName) {
-            var response = dropTable(tableName);
-            if (easyMode) {
-                response = response.error ? false : response.results;
-                if (response) {
-                    if(response.length === 1) {
-                        response = response[0];
-                    }
-                }
-            }
-            return response;
-        };
-        
-        db.addRecord = function(tableName, record, lock){
-            var response = addRecord(tableName, record, lock);
-            if (easyMode) {
-                response = response.error ? false : response.results;
-                if (response) {
-                    if(response.length === 1) {
-                        response = response[0];
-                    }
-                }
-            }
-            return response;
-        };
-        
-        db.getRecord = function(tableName, recordId, plainFlag){
-        	var response = getRecord(tableName, recordId, plainFlag);
-        	if (easyMode) {
-                response = response.error ? false : response.results;
-                if (response) {
-                    if(response.length === 1) {
-                        response = response[0];
-                    }
-                }
-            }
-            return response;
-        };
-        
-        db.removeRecord = function(tableName, recordId){
-            var response = removeRecord(tableName, recordId);
-            if (easyMode) {
-                response = response.error ? false : response.results;
-                if (response) {
-                    if(response.length === 1) {
-                        response = response[0];
-                    }
-                }
-            }
-            return response;
-        };
-        
-        db.removeRecords = function(tableName, records){
-        	var response = removeRecords(tableName, records);
-        	if (easyMode) {
-        		response = response.error ? false : response.results;
-        		if (response) {
-                    if(response.length === 1) {
-                        response = response[0];
-                    }
-                }
-        	}
-        	return response;
-        };
-        
-        db.getRecords = function(tableName, start, stop) {
-            var response = getRecords(tableName, start, stop);
-            if (easyMode) {
-                response = response.error ? false : response.results;
-                if (response) {
-                    if(response.length === 1) {
-                        response = response[0];
-                    }
-                }
-            }
+                return response;
+            };
             
-            return response;
-        };
-        
-        db.selectRecords = function(tableName, criteria) {
-            var response = selectRecords(tableName, criteria);
-            if (easyMode) {
-                response = response.error ? false : response.results;
-                if (response) {
-                    if(response.length === 1) {
-                        response = response[0];
+            db.checkTableName = function(tableName){
+                var response = checkTableName(tableName);
+                if (easyMode) {
+                    response = response.error ? false : response.results;
+                    if (response) {
+                        if(response.length === 1) {
+                            response = response[0];
+                        }
                     }
                 }
-            }
-            return response;
-        };
-        
-        db.getLikeRecords = function(tableName, record){
-            var response = getLikeRecords(tableName, record);
-            if (easyMode) {
-                response = response.error ? false : response.results;
-                if (response) {
-                    if(response.length === 1) {
-                        response = response[0];
+                return response;
+            };
+            
+            db.createTable = function(tableName){
+                var response = createTable(tableName);
+                if (easyMode) {
+                    response = response.error ? false : response.results;
+                    if (response) {
+                        if(response.length === 1) {
+                            response = response[0];
+                        }
                     }
                 }
-            }
-            return response;
-        };
-        
-        db.pickle = function(){
-            var response = pickle();
-            if (easyMode) {
-                response = response.error ? false : response.results;
-                if (response) {
-                    if(response.length === 1) {
-                        response = response[0];
+                return response;
+            };
+            
+            db.dropTable = function(tableName) {
+                var response = dropTable(tableName);
+                if (easyMode) {
+                    response = response.error ? false : response.results;
+                    if (response) {
+                        if(response.length === 1) {
+                            response = response[0];
+                        }
                     }
                 }
-            }
-            return response;
-        };
-        
-        db.unPickle = function(){
-            var response = unPickle();
-            if (easyMode) {
-                response = response.error ? false : response.results;
-                if (response) {
-                    if(response.length === 1) {
-                        response = response[0];
+                return response;
+            };
+            
+            db.addRecord = function(tableName, record, lock){
+                var response = addRecord(tableName, record, lock);
+                if (easyMode) {
+                    response = response.error ? false : response.results;
+                    if (response) {
+                        if(response.length === 1) {
+                            response = response[0];
+                        }
                     }
                 }
-            }
-            return response;
-        };
-        
-        db.getTableInfo = function(tableName){
-            var response = getTableInfo(tableName);
-            if (easyMode) {
-                response = response.error ? false : response.results;
-                if (response) {
-                    if(response.length === 1) {
-                        response = response[0];
+                return response;
+            };
+            
+            db.getRecord = function(tableName, recordId, plainFlag){
+            	var response = getRecord(tableName, recordId, plainFlag);
+            	if (easyMode) {
+                    response = response.error ? false : response.results;
+                    if (response) {
+                        if(response.length === 1) {
+                            response = response[0];
+                        }
                     }
                 }
-            }
-            return response;
-        };
-        
-        db.addRecords = function(tableName, records){
-            var response = addRecords(tableName, records);
-            if (easyMode) {
-                response = response.error ? false : response.results;
-                if (response) {
-                    if(response.length === 1) {
-                        response = response[0];
+                return response;
+            };
+            
+            db.removeRecord = function(tableName, recordId){
+                var response = removeRecord(tableName, recordId);
+                if (easyMode) {
+                    response = response.error ? false : response.results;
+                    if (response) {
+                        if(response.length === 1) {
+                            response = response[0];
+                        }
                     }
                 }
-            }
-            return response;
-        };
-        
-        db.getCollection = function(tableName, collection, plainFlag){
-            var response = getCollection(tableName, collection, plainFlag);
-            if (easyMode) {
-                response = response.error ? false : response.results;
-                if (response) {
-                    if(response.length === 1) {
-                        response = response[0];
+                return response;
+            };
+            
+            db.removeRecords = function(tableName, records){
+            	var response = removeRecords(tableName, records);
+            	if (easyMode) {
+            		response = response.error ? false : response.results;
+            		if (response) {
+                        if(response.length === 1) {
+                            response = response[0];
+                        }
+                    }
+            	}
+            	return response;
+            };
+            
+            db.getRecords = function(tableName, start, stop) {
+                var response = getRecords(tableName, start, stop);
+                if (easyMode) {
+                    response = response.error ? false : response.results;
+                    if (response) {
+                        if(response.length === 1) {
+                            response = response[0];
+                        }
                     }
                 }
-            }
-            return response;
-        };
-        
-        db.getUnique = function(tableName){
-            var response = getUnique(tableName);
-            if (easyMode) {
-                response = response.error ? false : response.results;
-                if (response) {
-                    if(response.length === 1) {
-                        response = response[0];
+                
+                return response;
+            };
+            
+            db.selectRecords = function(tableName, criteria) {
+                var response = selectRecords(tableName, criteria);
+                if (easyMode) {
+                    response = response.error ? false : response.results;
+                    if (response) {
+                        if(response.length === 1) {
+                            response = response[0];
+                        }
                     }
                 }
-            }
-            return response;
-        };
-        
-        db.deDupe = function(tableName){
-            var response = deDupe(tableName);
-            if (easyMode) {
-                response = response.error ? false : response.results;
-                if (response) {
-                    if(response.length === 1) {
-                        response = response[0];
+                return response;
+            };
+            
+            db.getLikeRecords = function(tableName, record){
+                var response = getLikeRecords(tableName, record);
+                if (easyMode) {
+                    response = response.error ? false : response.results;
+                    if (response) {
+                        if(response.length === 1) {
+                            response = response[0];
+                        }
                     }
                 }
-            }
-            return response;
-        };
-        
-        db.updateRecord = function(tableName, recordId, update){
-            var response = updateRecord(tableName, recordId, update);
-            if (easyMode) {
-                response = response.error ? false : response.results;
-                if (response) {
-                    if(response.length === 1) {
-                        response = response[0];
+                return response;
+            };
+            
+            db.pickle = function(){
+                var response = pickle();
+                if (easyMode) {
+                    response = response.error ? false : response.results;
+                    if (response) {
+                        if(response.length === 1) {
+                            response = response[0];
+                        }
                     }
                 }
-            }
-            return response;
-        };
-        
-        db.lockRecord = function(tableName, recordId){
-            var update = {};
-            update[recordMetaData.lock] = true;
-            var response = updateRecord(tableName, recordId, update);
-            if (easyMode) {
-                response = response.error ? false : response.results;
-                if (response) {
-                    if(response.length === 1) {
-                        response = response[0];
+                return response;
+            };
+            
+            db.unPickle = function(){
+                var response = unPickle();
+                if (easyMode) {
+                    response = response.error ? false : response.results;
+                    if (response) {
+                        if(response.length === 1) {
+                            response = response[0];
+                        }
                     }
                 }
-            }
-            return response;
-        };
-        
-        db.unlockRecord = function(tableName, recordId){
-            var update = {};
-            update[recordMetaData.lock] = false;
-            var response = updateRecord(tableName, recordId, update, true);
-            if (easyMode) {
-                response = response.error ? false : response.results;
-                if (response) {
-                    if(response.length === 1) {
-                        response = response[0];
+                return response;
+            };
+            
+            db.getTableInfo = function(tableName){
+                var response = getTableInfo(tableName);
+                if (easyMode) {
+                    response = response.error ? false : response.results;
+                    if (response) {
+                        if(response.length === 1) {
+                            response = response[0];
+                        }
                     }
                 }
-            }
-            return response;
-        };
-        
-        db.setOptions = function(options){
-            var response = system.setOptions(options);
-            if (easyMode) {
-                response = response.error ? false : response.results;
-                if (response) {
-                    if(response.length === 1) {
-                        response = response[0];
+                return response;
+            };
+            
+            db.addRecords = function(tableName, records){
+                var response = addRecords(tableName, records);
+                if (easyMode) {
+                    response = response.error ? false : response.results;
+                    if (response) {
+                        if(response.length === 1) {
+                            response = response[0];
+                        }
                     }
                 }
-            }
-            return response;
-        };
-        
-        db.extend = function(newMethod, methodName){
-            var response = system.extend(newMethod, methodName);
-            if (easyMode) {
-                response = response.error ? false : response.results;
-                if (response) {
-                    if(response.length === 1) {
-                        response = response[0];
+                return response;
+            };
+            
+            db.getCollection = function(tableName, collection, plainFlag){
+                var response = getCollection(tableName, collection, plainFlag);
+                if (easyMode) {
+                    response = response.error ? false : response.results;
+                    if (response) {
+                        if(response.length === 1) {
+                            response = response[0];
+                        }
                     }
                 }
-            }
-            return response;
+                return response;
+            };
+            
+            db.getUnique = function(tableName){
+                var response = getUnique(tableName);
+                if (easyMode) {
+                    response = response.error ? false : response.results;
+                    if (response) {
+                        if(response.length === 1) {
+                            response = response[0];
+                        }
+                    }
+                }
+                return response;
+            };
+            
+            db.deDupe = function(tableName){
+                var response = deDupe(tableName);
+                if (easyMode) {
+                    response = response.error ? false : response.results;
+                    if (response) {
+                        if(response.length === 1) {
+                            response = response[0];
+                        }
+                    }
+                }
+                return response;
+            };
+            
+            db.updateRecord = function(tableName, recordId, update){
+                var response = updateRecord(tableName, recordId, update);
+                if (easyMode) {
+                    response = response.error ? false : response.results;
+                    if (response) {
+                        if(response.length === 1) {
+                            response = response[0];
+                        }
+                    }
+                }
+                return response;
+            };
+            
+            db.lockRecord = function(tableName, recordId){
+                var update = {};
+                update[recordMetaData.lock] = true;
+                var response = updateRecord(tableName, recordId, update);
+                if (easyMode) {
+                    response = response.error ? false : response.results;
+                    if (response) {
+                        if(response.length === 1) {
+                            response = response[0];
+                        }
+                    }
+                }
+                return response;
+            };
+            
+            db.unlockRecord = function(tableName, recordId){
+                var update = {};
+                update[recordMetaData.lock] = false;
+                var response = updateRecord(tableName, recordId, update, true);
+                if (easyMode) {
+                    response = response.error ? false : response.results;
+                    if (response) {
+                        if(response.length === 1) {
+                            response = response[0];
+                        }
+                    }
+                }
+                return response;
+            };
+            
+            db.setOptions = function(options){
+                var response = system.setOptions(options);
+                if (easyMode) {
+                    response = response.error ? false : response.results;
+                    if (response) {
+                        if(response.length === 1) {
+                            response = response[0];
+                        }
+                    }
+                }
+                return response;
+            };
+            
+            db.extend = function(newMethod, methodName){
+                var response = system.extend(newMethod, methodName);
+                if (easyMode) {
+                    response = response.error ? false : response.results;
+                    if (response) {
+                        if(response.length === 1) {
+                            response = response[0];
+                        }
+                    }
+                }
+                return response;
+            };
+            
+            return db;
         };
+        
+        system.createAPI = createAPI;
+        
+        createAPI();
         
         system.init();
 
