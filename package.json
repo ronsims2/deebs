@@ -1,0 +1,31 @@
+{
+  "name": "deebs",
+  "version": "0.9.4",
+  "description": "A JavaScript database library",
+  "main": "scripts/deebs.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/orangemantis/deebs.git"
+  },
+  "keywords": [
+    "deebs",
+    "database"
+  ],
+  "author": "RA Sims II",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/orangemantis/deebs/issues"
+  },
+  "homepage": "http://deebsjs.com",
+  "devDependencies": {
+    "grunt": "~0.4.5",
+    "grunt-contrib-uglify": "~0.6.0",
+    "grunt-bump": "0.0.16"
+  }
+}
