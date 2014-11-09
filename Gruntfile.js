@@ -8,18 +8,25 @@ module.exports = function(grunt){
 	    	},
 	    	build: {
 	    		src: '<%= pkg.main %>',
-	    		dest: 'build/<%= pkg.name %>' + '<%= pkg.version %>' + '.min.js'
+	    		dest: '<%= pkg.name %>-build/<%= pkg.name %>' + '.<%= pkg.version %>' + '.min.js'
 	    	}
 	    },
 	    bump: {
-	    	files: ['package.json'],
-	        updateConfigs: ['pkg'],
-	        commit: false,
-	        push: false
-	    }
+	    	options: {
+	    		files: ['package.json'],
+		        updateConfigs: ['pkg'],
+		        commit: false,
+		        createTag: false,
+		        push: false,
+		        pushTo: '',
+		        globalReplace: false
+	    	}
+	    },
+	    clean: ['<%= pkg.name %>-build']
 	  });
 
 	  grunt.loadNpmTasks('grunt-contrib-uglify');
 	  grunt.loadNpmTasks('grunt-bump');
-	  grunt.registerTask('default', ['bump:patch', 'uglify', ]);
+	  grunt.loadNpmTasks('grunt-contrib-clean');
+	  grunt.registerTask('default', ['clean', 'bump:patch', 'uglify']);
 };
